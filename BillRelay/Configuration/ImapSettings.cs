@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using Microsoft.Extensions.Configuration;
+
 namespace BillRelay.Configuration
 {
     public sealed class ImapSettings
@@ -20,9 +22,11 @@ namespace BillRelay.Configuration
         public string Password { get; set; } = string.Empty;
 
         [JsonPropertyName("useSsl")]
-        public bool UseSsl { get; set; } = true;
+        [ConfigurationKeyName("useSsl")]
+        public bool IsSslEnabled { get; set; } = true;
 
         [JsonPropertyName("validateCertificates")]
-        public bool ValidateCertificates { get; set; } = true;
+        [ConfigurationKeyName("validateCertificates")]
+        public bool IsCertificateValidationEnabled { get; set; } = true;
     }
 }

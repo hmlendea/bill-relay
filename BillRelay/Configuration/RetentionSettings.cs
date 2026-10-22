@@ -1,13 +1,17 @@
 using System.Text.Json.Serialization;
 
+using Microsoft.Extensions.Configuration;
+
 namespace BillRelay.Configuration
 {
     public sealed class RetentionSettings
     {
         [JsonPropertyName("maxAgeDays")]
-        public int MaxAgeDays { get; set; } = 365;
+        [ConfigurationKeyName("maxAgeDays")]
+        public int MaximumAgeDays { get; set; } = 365;
 
         [JsonPropertyName("maxFiles")]
-        public int MaxFiles { get; set; } = 10000;
+        [ConfigurationKeyName("maxFiles")]
+        public int MaximumFiles { get; set; } = 10000;
     }
 }

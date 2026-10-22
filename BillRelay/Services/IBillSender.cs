@@ -9,6 +9,9 @@ namespace BillRelay.Services
     {
         void ValidateConfiguration();
 
-        Task SendAsync(MimePart attachment, string providerName, CancellationToken cancellationToken);
+        Task SendAsync(
+            MimePart attachment,
+            string providerName,
+            CancellationToken cancellationToken);
     }
 }

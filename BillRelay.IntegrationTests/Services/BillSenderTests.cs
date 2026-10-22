@@ -51,8 +51,11 @@ namespace BillRelay.IntegrationTests.Services
             client.Setup(notification => notification.SendEmail(
                 "BillRelay", "recipient@example.com", "Bill Vodafone", "From Vodafone",
                 It.Is<IEnumerable<EmailAttachmentRequest>>(attachments =>
-                    attachments.Single().FileName == "bill.pdf" &&
-                    attachments.Single().Content == Convert.ToBase64String(Encoding.UTF8.GetBytes("%PDF-test")))))
+                    string.Equals(attachments.Single().FileName, "bill.pdf", StringComparison.Ordinal) &&
+                    string.Equals(
+                        attachments.Single().Content,
+                        Convert.ToBase64String(Encoding.UTF8.GetBytes("%PDF-test")),
+                        StringComparison.Ordinal))))
                 .Returns(Task.CompletedTask);
             BillRelaySettings settings = new()
             {
@@ -70,6 +73,7 @@ namespace BillRelay.IntegrationTests.Services
                 Assert.That(async () => await sender.SendAsync(attachment, "Vodafone", CancellationToken.None),
                     Throws.Exception);
                 client.VerifyNoOtherCalls();
+
                 return;
             }
 

@@ -8,45 +8,49 @@ using MimeKit;
 
 namespace BillRelay.Services
 {
-    public static class BillProviderIdentification
+    public static partial class BillProviderIdentification
     {
-        private static readonly Regex linkPattern = new(
-            "https?://[^\\s<>\"']+",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-            TimeSpan.FromSeconds(1));
-
         public static bool IsBillAttachment(
             MimePart attachment,
             string providerName)
         {
-            string pattern = providerName switch
+            Regex pattern = providerName switch
             {
-                "Vodafone" => @"\AVDF[0-9]+\.pdf\z",
-                "Electrica Furnizare" => @"\ADII[0-9]P[0-9]+\.pdf\z",
-                "E-bloc" => "\\ANota de plat[\u0103a]\\.pdf\\z",
-                _ => @"\b\B"
+                "Vodafone" => VodafoneAttachmentPattern(),
+                "Electrica Furnizare" => ElectricaAttachmentPattern(),
+                "E-bloc" => EBlocAttachmentPattern(),
+                _ => UnmatchedAttachmentPattern()
             };
+            string fileName = string.Empty;
 
-            return string.Equals(
-                attachment.ContentType.MimeType,
-                "application/pdf",
-                StringComparison.OrdinalIgnoreCase) &&
-                Regex.IsMatch(
-                    attachment.FileName ?? string.Empty,
-                    pattern,
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-                    TimeSpan.FromSeconds(1));
+            if (attachment.FileName is not null)
+            {
+                fileName = attachment.FileName;
+            }
+
+            return
+                string.Equals(
+                    attachment.ContentType.MimeType,
+                    "application/pdf",
+                    StringComparison.OrdinalIgnoreCase) &&
+                pattern.IsMatch(fileName);
         }
 
         public static string? IdentifyProvider(MimeMessage message)
         {
-            if (!HasBillingSubject(message.Subject ?? string.Empty))
+            string subject = string.Empty;
+
+            if (message.Subject is not null)
+            {
+                subject = message.Subject;
+            }
+
+            if (!HasBillingSubject(subject))
             {
                 return null;
             }
 
-            string body = message.HtmlBody ?? message.TextBody ?? string.Empty;
-            string[] domains = linkPattern.Matches(body)
+            string[] domains = LinkPattern().Matches(GetBody(message))
                 .Select(match => GetDomain(match.Value))
                 .Concat(message.From.Mailboxes.Select(sender => sender.Address.Split('@').Last()))
                 .ToArray();
@@ -55,12 +59,27 @@ namespace BillRelay.Services
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
 
-            if (providers.Length == 1)
+            if (Equals(providers.Length, 1))
             {
                 return providers[0];
             }
 
             return null;
+        }
+
+        private static string GetBody(MimeMessage message)
+        {
+            if (message.HtmlBody is not null)
+            {
+                return message.HtmlBody;
+            }
+
+            if (message.TextBody is not null)
+            {
+                return message.TextBody;
+            }
+
+            return string.Empty;
         }
 
         private static string GetDomain(string address)
@@ -80,7 +99,8 @@ namespace BillRelay.Services
                 return "Vodafone";
             }
 
-            if (IsDomain(domain, "electricafurnizare.ro") || IsDomain(domain, "myelectrica.ro"))
+            if (IsDomain(domain, "electricafurnizare.ro") ||
+                IsDomain(domain, "myelectrica.ro"))
             {
                 return "Electrica Furnizare";
             }
@@ -100,14 +120,31 @@ namespace BillRelay.Services
         private static bool HasBillingSubject(string subject)
         {
             string normalizedSubject = new(subject.Normalize(NormalizationForm.FormD)
-                .Where(character => CharUnicodeInfo.GetUnicodeCategory(character) !=
-                    UnicodeCategory.NonSpacingMark)
+                .Where(character => !Equals(
+                    CharUnicodeInfo.GetUnicodeCategory(character),
+                    UnicodeCategory.NonSpacingMark))
                 .ToArray());
 
-            return normalizedSubject.Contains("factur", StringComparison.OrdinalIgnoreCase) ||
+            return
+                normalizedSubject.Contains("factur", StringComparison.OrdinalIgnoreCase) ||
                 normalizedSubject.Contains("intretinere", StringComparison.OrdinalIgnoreCase) ||
                 normalizedSubject.Contains("invoice", StringComparison.OrdinalIgnoreCase) ||
                 normalizedSubject.Contains("bill", StringComparison.OrdinalIgnoreCase);
         }
+
+        [GeneratedRegex("https?://[^\\s<>\"']+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex LinkPattern();
+
+        [GeneratedRegex(@"\AVDF[0-9]+\.pdf\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex VodafoneAttachmentPattern();
+
+        [GeneratedRegex(@"\ADII[0-9]P[0-9]+\.pdf\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex ElectricaAttachmentPattern();
+
+        [GeneratedRegex("\\ANota de plat[\u0103a]\\.pdf\\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex EBlocAttachmentPattern();
+
+        [GeneratedRegex(@"\b\B", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex UnmatchedAttachmentPattern();
     }
 }

@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using Microsoft.Extensions.Configuration;
+
 namespace BillRelay.Configuration
 {
     public sealed class AttachmentSettings
@@ -8,6 +10,7 @@ namespace BillRelay.Configuration
         public string[] PermittedMimeTypes { get; set; } = ["application/pdf"];
 
         [JsonPropertyName("maxSizeBytes")]
-        public long MaxSizeBytes { get; set; } = 25_000_000;
+        [ConfigurationKeyName("maxSizeBytes")]
+        public long MaximumSizeBytes { get; set; } = 25_000_000;
     }
 }

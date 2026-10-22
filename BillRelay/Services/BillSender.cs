@@ -22,6 +22,8 @@ namespace BillRelay.Services
         INuciNotificationsClient client,
         IOptions<BillRelaySettings> settings) : IBillSender
     {
+        private static string ProviderNamePlaceholder => "{ProviderName}";
+
         public void ValidateConfiguration()
         {
             _ = new MailAddress(settings.Value.Delivery.Recipient);
@@ -37,9 +39,12 @@ namespace BillRelay.Services
             _ = new MailAddress(delivery.Recipient);
             EmailTemplateDataObject template = LoadTemplate(delivery.TemplatePath);
             string subject = template.Subject
-                .Replace("{ProviderName}", providerName, StringComparison.Ordinal);
+                .Replace(ProviderNamePlaceholder, providerName, StringComparison.Ordinal);
             string body = template.Body
-                .Replace("{ProviderName}", WebUtility.HtmlEncode(providerName), StringComparison.Ordinal);
+                .Replace(
+                    ProviderNamePlaceholder,
+                    WebUtility.HtmlEncode(providerName),
+                    StringComparison.Ordinal);
             using MemoryStream content = new();
             await attachment.Content.DecodeToAsync(content, cancellationToken);
             EmailAttachmentRequest bill = new()
@@ -48,7 +53,12 @@ namespace BillRelay.Services
                 Content = Convert.ToBase64String(content.ToArray())
             };
             cancellationToken.ThrowIfCancellationRequested();
-            await client.SendEmail(delivery.SenderName, delivery.Recipient, subject, body, [bill]);
+            await client.SendEmail(
+                delivery.SenderName,
+                delivery.Recipient,
+                subject,
+                body,
+                [bill]);
         }
 
         private static EmailTemplateDataObject LoadTemplate(string path)

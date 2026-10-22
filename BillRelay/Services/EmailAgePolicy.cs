@@ -20,7 +20,7 @@ namespace BillRelay.Services
             return cutoff;
         }
 
-        public static bool IsEligible(DateTimeOffset? arrivalTime, DateTimeOffset cutoff) =>
-            arrivalTime.HasValue && arrivalTime.Value >= cutoff;
+        public static bool IsEligible(DateTimeOffset? arrivalTime, DateTimeOffset cutoff)
+            => arrivalTime.HasValue && arrivalTime.Value >= cutoff;
     }
 }

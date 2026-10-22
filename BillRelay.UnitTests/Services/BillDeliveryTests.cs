@@ -34,6 +34,7 @@ namespace BillRelay.UnitTests.Services
                     }
 
                     wasSent = true;
+
                     return Task.CompletedTask;
                 });
             store.Setup(instance => instance.MarkProcessedAsync("delivery:attachment", "message", CancellationToken.None))
@@ -48,6 +49,7 @@ namespace BillRelay.UnitTests.Services
                     Throws.TypeOf<InvalidOperationException>());
                 store.Verify(instance => instance.MarkProcessedAsync(
                     It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
                 return;
             }
 

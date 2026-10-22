@@ -27,6 +27,7 @@ namespace BillRelay.IntegrationTests.Services
             if (string.IsNullOrWhiteSpace(exampleDirectory))
             {
                 Assert.Ignore("Set BILLRELAY_EXAMPLE_DIRECTORY to validate private email samples.");
+
                 return;
             }
 
@@ -67,9 +68,7 @@ namespace BillRelay.IntegrationTests.Services
 
                 foreach (MimePart attachment in attachments)
                 {
-                    Assert.That(
-                        BillProviderIdentification.IsBillAttachment(attachment, providerName!),
-                        Is.True);
+                    Assert.That(BillProviderIdentification.IsBillAttachment(attachment, providerName!));
 
                     await processor.ProcessAsync(
                         attachment,

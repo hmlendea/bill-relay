@@ -4,9 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using NuciDAL.Repositories;
+
 using BillRelay.Configuration;
 
 namespace BillRelay.Services
@@ -15,13 +18,13 @@ namespace BillRelay.Services
         ILogger<FileStateStore> logger,
         IOptions<BillRelaySettings> settings) : IStateStore
     {
-        private readonly BillRelaySettings settings = settings.Value;
         private JsonRepository<ProcessedAttachmentRecord>? repository;
 
         public async Task InitializeAsync(CancellationToken cancellationToken)
         {
-            string stateFilePath = settings.Storage.StateFilePath;
+            string stateFilePath = settings.Value.Storage.StateFilePath;
             string? directory = Path.GetDirectoryName(stateFilePath);
+
             if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
@@ -32,8 +35,8 @@ namespace BillRelay.Services
                 await File.WriteAllTextAsync(stateFilePath, "[]", cancellationToken);
             }
 
-            repository = new JsonRepository<ProcessedAttachmentRecord>(stateFilePath);
-            logger.LogDebug("State store initialized at: {StateFilePath}", stateFilePath);
+            repository = new(stateFilePath);
+            logger.LogDebug("The state store was initialized at: {StateFilePath}.", stateFilePath);
         }
 
         public Task<bool> IsProcessedAsync(string attachmentId, CancellationToken cancellationToken)
@@ -42,19 +45,22 @@ namespace BillRelay.Services
 
             if (repository is null)
             {
-                throw new InvalidOperationException("State store not initialized");
+                throw new InvalidOperationException("The state store must be initialized before checking attachments.");
             }
 
             return Task.FromResult(repository.ContainsId(attachmentId));
         }
 
-        public Task MarkProcessedAsync(string attachmentId, string messageId, CancellationToken cancellationToken)
+        public Task MarkProcessedAsync(
+            string attachmentId,
+            string messageId,
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (repository is null)
             {
-                throw new InvalidOperationException("State store not initialized");
+                throw new InvalidOperationException("The state store must be initialized before recording attachments.");
             }
 
             ProcessedAttachmentRecord record = new()
@@ -66,63 +72,84 @@ namespace BillRelay.Services
 
             repository.TryAdd(record);
             repository.SaveChanges();
+
             return Task.CompletedTask;
         }
 
-        public Task ApplyRetentionAsync(int maxAgeDays, int maxFiles, CancellationToken cancellationToken)
+        public Task ApplyRetentionAsync(
+            int maximumAgeDays,
+            int maximumFiles,
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (repository is null)
             {
-                throw new InvalidOperationException("State store not initialized");
+                throw new InvalidOperationException("The state store must be initialized before applying retention.");
             }
 
             List<ProcessedAttachmentRecord> records = repository.GetAll().ToList();
-            List<string> identifiersToRemove = [];
-
-            if (maxAgeDays > 0)
-            {
-                DateTimeOffset cutoffDate = DateTimeOffset.UtcNow.AddDays(-maxAgeDays);
-                identifiersToRemove.AddRange(records
-                        .Where(record => record.ProcessedAt < cutoffDate)
-                        .Select(record => record.Id));
-            }
-
-                    HashSet<string> expiredIdentifiers = identifiersToRemove.ToHashSet(StringComparer.Ordinal);
-                    records = records.Where(record => !expiredIdentifiers.Contains(record.Id)).ToList();
-
-            if (maxFiles > 0 && records.Count > maxFiles)
-            {
-                int excessCount = records.Count - maxFiles;
-                IEnumerable<string> oldestRecordIdentifiers = records
-                    .OrderBy(record => record.ProcessedAt)
-                    .ThenBy(record => record.Id, StringComparer.Ordinal)
-                    .Take(excessCount)
-                    .Select(record => record.Id);
-                identifiersToRemove.AddRange(oldestRecordIdentifiers);
-            }
-
-            foreach (string identifier in identifiersToRemove.Distinct())
-            {
-                repository.TryRemove(identifier);
-            }
-
-            if (identifiersToRemove.Count > 0)
-            {
-                repository.SaveChanges();
-                logger.LogDebug(
-                    "Retention removed {RecordCount} records.",
-                    identifiersToRemove.Count);
-            }
+            List<string> identifiersToRemove = GetExpiredIdentifiers(records, maximumAgeDays).ToList();
+            HashSet<string> expiredIdentifiers = identifiersToRemove.ToHashSet(StringComparer.Ordinal);
+            records = records.Where(record => !expiredIdentifiers.Contains(record.Id)).ToList();
+            identifiersToRemove.AddRange(GetExcessIdentifiers(records, maximumFiles));
+            RemoveRecords(identifiersToRemove);
 
             return Task.CompletedTask;
         }
 
-        public void Dispose()
+        public void Dispose() => repository = null;
+
+        private static IEnumerable<string> GetExpiredIdentifiers(
+            IEnumerable<ProcessedAttachmentRecord> records,
+            int maximumAgeDays)
         {
-            repository = null;
+            if (maximumAgeDays <= 0)
+            {
+                return [];
+            }
+
+            DateTimeOffset cutoffDate = DateTimeOffset.UtcNow.AddDays(-maximumAgeDays);
+
+            return
+                records.Where(record => record.ProcessedAt < cutoffDate).Select(record => record.Id);
+        }
+
+        private static IEnumerable<string> GetExcessIdentifiers(
+            IEnumerable<ProcessedAttachmentRecord> records,
+            int maximumFiles)
+        {
+            if (maximumFiles <= 0)
+            {
+                return [];
+            }
+
+            ProcessedAttachmentRecord[] remainingRecords = records.ToArray();
+            int excessCount = Math.Max(0, remainingRecords.Length - maximumFiles);
+
+            return remainingRecords
+                .OrderBy(record => record.ProcessedAt)
+                .ThenBy(record => record.Id, StringComparer.Ordinal)
+                .Take(excessCount)
+                .Select(record => record.Id);
+        }
+
+        private void RemoveRecords(IEnumerable<string> identifiers)
+        {
+            string[] identifiersToRemove = identifiers.Distinct().ToArray();
+
+            foreach (string identifier in identifiersToRemove)
+            {
+                repository!.TryRemove(identifier);
+            }
+
+            if (identifiersToRemove.Length > 0)
+            {
+                repository!.SaveChanges();
+                logger.LogDebug(
+                    "Retention removed {RecordCount} records.",
+                    identifiersToRemove.Length);
+            }
         }
     }
-
 }

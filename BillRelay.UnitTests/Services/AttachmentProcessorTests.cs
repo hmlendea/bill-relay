@@ -1,148 +1,194 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using MimeKit;
+
 using Moq;
+
 using NUnit.Framework;
+
 using BillRelay.Configuration;
 using BillRelay.Services;
 
-namespace BillRelay.UnitTests.Services;
-
-[TestFixture]
-public class AttachmentProcessorTests
+namespace BillRelay.UnitTests.Services
 {
-    private Mock<ILogger<AttachmentProcessor>> loggerMock = null!;
-    private IOptions<BillRelaySettings> settings = null!;
-    private AttachmentProcessor processor = null!;
-    private string tempDirectory = null!;
-
-    [SetUp]
-    public void SetUp()
+    [TestFixture]
+    public sealed class AttachmentProcessorTests
     {
-        loggerMock = new Mock<ILogger<AttachmentProcessor>>();
-        tempDirectory = Path.Combine(Path.GetTempPath(), $"billrelay_tests_{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDirectory);
+        private Mock<ILogger<AttachmentProcessor>> loggerMock = null!;
+        private IOptions<BillRelaySettings> settings = null!;
+        private AttachmentProcessor processor = null!;
+        private string temporaryDirectory = null!;
 
-        var billRelaySettings = new BillRelaySettings
+        [SetUp]
+        public void SetUp()
         {
-            Storage = new StorageSettings
-            {
-                DownloadDirectory = tempDirectory
-            },
-            Attachments = new AttachmentSettings
-            {
-                PermittedMimeTypes = ["application/pdf"],
-                MaxSizeBytes = 25_000_000
-            }
-        };
+            loggerMock = new();
+            temporaryDirectory = Path.Combine(Path.GetTempPath(), $"billrelay_tests_{Guid.NewGuid()}");
+            Directory.CreateDirectory(temporaryDirectory);
 
-        settings = Options.Create(billRelaySettings);
-        processor = new AttachmentProcessor(loggerMock.Object, settings);
-    }
+            BillRelaySettings billRelaySettings = new()
+            {
+                Storage = new()
+                {
+                    DownloadDirectory = temporaryDirectory
+                },
+                Attachments = new()
+                {
+                    PermittedMimeTypes = ["application/pdf"],
+                    MaximumSizeBytes = 25_000_000
+                }
+            };
 
-    [TearDown]
-    public void TearDown()
-    {
-        if (Directory.Exists(tempDirectory))
-        {
-            Directory.Delete(tempDirectory, true);
+            settings = Options.Create(billRelaySettings);
+            processor = new(loggerMock.Object, settings);
         }
-    }
 
-    [Test]
-    public async Task GivenValidPdfAttachment_WhenProcessing_ThenSavesFile()
-    {
-        string pdfContent = "%PDF-1.4\n%Test PDF content\n%%EOF";
-        MimePart attachment = CreateMimePart("test.pdf", "application/pdf", pdfContent);
-        string attachmentIdentifier = "test123";
-
-        await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
-
-        string[] files = Directory.GetFiles(tempDirectory);
-        Assert.That(files.Length, Is.EqualTo(1));
-        Assert.That(Path.GetFileName(files[0]), Is.EqualTo("test.pdf"));
-
-        string savedContent = await File.ReadAllTextAsync(files[0]);
-        Assert.That(savedContent, Is.EqualTo(pdfContent));
-    }
-
-    [Test]
-    public async Task GivenDuplicateAttachment_WhenProcessing_ThenDoesNotCreateDuplicate()
-    {
-        string pdfContent = "%PDF-1.4\n%Test PDF content\n%%EOF";
-        MimePart attachment = CreateMimePart("test.pdf", "application/pdf", pdfContent);
-        string attachmentIdentifier = "test123";
-
-        await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
-        await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
-
-        string[] files = Directory.GetFiles(tempDirectory);
-        Assert.That(files.Length, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task GivenSameNameDifferentContent_WhenProcessing_ThenCreatesUniqueFileName()
-    {
-        string firstPdfContent = "%PDF-1.4\n%Test PDF content 1\n%%EOF";
-        string secondPdfContent = "%PDF-1.4\n%Test PDF content 2\n%%EOF";
-        MimePart firstAttachment = CreateMimePart("test.pdf", "application/pdf", firstPdfContent);
-        MimePart secondAttachment = CreateMimePart("test.pdf", "application/pdf", secondPdfContent);
-
-        await processor.ProcessAsync(firstAttachment, "id1", CancellationToken.None);
-        await processor.ProcessAsync(secondAttachment, "id2", CancellationToken.None);
-
-        string[] files = Directory.GetFiles(tempDirectory);
-        Assert.That(files.Length, Is.EqualTo(2));
-        Assert.That(files.Any(f => Path.GetFileName(f) == "test.pdf"), Is.True);
-        Assert.That(files.Any(f => Path.GetFileName(f) == "test_1.pdf"), Is.True);
-    }
-
-    [Test]
-    public async Task GivenFilenameWithInvalidChars_WhenProcessing_ThenSanitizesFileName()
-    {
-        string pdfContent = "%PDF-1.4\n%Test\n%%EOF";
-        MimePart attachment = CreateMimePart("test<>:\"|?.pdf", "application/pdf", pdfContent);
-        string attachmentIdentifier = "test123";
-
-        await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
-
-        string[] files = Directory.GetFiles(tempDirectory);
-        Assert.That(files.Length, Is.EqualTo(1));
-        string? fileName = Path.GetFileName(files[0]);
-        Assert.That(fileName, Does.Not.Contain("<"));
-        Assert.That(fileName, Does.Not.Contain(">"));
-        Assert.That(fileName, Does.Not.Contain(":"));
-        Assert.That(fileName, Does.Not.Contain("\""));
-        Assert.That(fileName, Does.Not.Contain("|"));
-        Assert.That(fileName, Does.Not.Contain("?"));
-    }
-
-    [Test]
-    public async Task GivenAStaleTemporaryFile_WhenSavingABill_ThenItIsPreservedAndTheBillIsSaved()
-    {
-        string stalePath = Path.Combine(tempDirectory, "test.pdf.tmp");
-        await File.WriteAllTextAsync(stalePath, "Existing download.");
-        using MimePart attachment = CreateMimePart("test.pdf", "application/pdf", "%PDF-bill");
-
-        await processor.ProcessAsync(attachment, "bill", CancellationToken.None);
-
-        Assert.That(await File.ReadAllTextAsync(stalePath), Is.EqualTo("Existing download."));
-        Assert.That(await File.ReadAllTextAsync(Path.Combine(tempDirectory, "test.pdf")),
-            Is.EqualTo("%PDF-bill"));
-    }
-
-    private static MimePart CreateMimePart(string fileName, string mimeType, string content)
-    {
-        MimePart part = new(mimeType)
+        [TearDown]
+        public void TearDown()
         {
-            FileName = fileName,
-            Content = new MimeContent(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content)))
-        };
-        return part;
+            if (Directory.Exists(temporaryDirectory))
+            {
+                Directory.Delete(temporaryDirectory, true);
+            }
+        }
+
+        [Test]
+        public async Task GivenAValidPdfAttachment_WhenProcessingIt_ThenTheFileIsSaved()
+        {
+            string pdfContent = "%PDF-1.4\n%Test PDF content\n%%EOF";
+            MimePart attachment = CreateMimePart("test.pdf", "application/pdf", pdfContent);
+            string attachmentIdentifier = "test123";
+
+            await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
+
+            string[] files = Directory.GetFiles(temporaryDirectory);
+            Assert.That(files, Has.Length.EqualTo(1));
+            Assert.That(Path.GetFileName(files[0]), Is.EqualTo("test.pdf"));
+
+            string savedContent = await File.ReadAllTextAsync(files[0]);
+            Assert.That(savedContent, Is.EqualTo(pdfContent));
+        }
+
+        [Test]
+        public async Task GivenADuplicateAttachment_WhenProcessingIt_ThenNoDuplicateFileIsCreated()
+        {
+            string pdfContent = "%PDF-1.4\n%Test PDF content\n%%EOF";
+            MimePart attachment = CreateMimePart("test.pdf", "application/pdf", pdfContent);
+            string attachmentIdentifier = "test123";
+
+            await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
+            await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
+
+            string[] files = Directory.GetFiles(temporaryDirectory);
+            Assert.That(files, Has.Length.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GivenTheSameNameWithDifferentContent_WhenProcessingIt_ThenAUniqueFileIsCreated()
+        {
+            string firstPdfContent = "%PDF-1.4\n%Test PDF content 1\n%%EOF";
+            string secondPdfContent = "%PDF-1.4\n%Test PDF content 2\n%%EOF";
+            MimePart firstAttachment = CreateMimePart("test.pdf", "application/pdf", firstPdfContent);
+            MimePart secondAttachment = CreateMimePart("test.pdf", "application/pdf", secondPdfContent);
+
+            await processor.ProcessAsync(firstAttachment, "id1", CancellationToken.None);
+            await processor.ProcessAsync(secondAttachment, "id2", CancellationToken.None);
+
+            string[] files = Directory.GetFiles(temporaryDirectory);
+            Assert.That(files, Has.Length.EqualTo(2));
+            Assert.That(files.Select(Path.GetFileName), Does.Contain("test.pdf"));
+            Assert.That(files.Select(Path.GetFileName), Does.Contain("test_1.pdf"));
+        }
+
+        [Test]
+        public async Task GivenAFileNameWithInvalidCharacters_WhenProcessingIt_ThenTheNameIsSanitized()
+        {
+            string pdfContent = "%PDF-1.4\n%Test\n%%EOF";
+            MimePart attachment = CreateMimePart("test<>:\"|?.pdf", "application/pdf", pdfContent);
+            string attachmentIdentifier = "test123";
+
+            await processor.ProcessAsync(attachment, attachmentIdentifier, CancellationToken.None);
+
+            string[] files = Directory.GetFiles(temporaryDirectory);
+            Assert.That(files, Has.Length.EqualTo(1));
+            string? fileName = Path.GetFileName(files[0]);
+            Assert.That(fileName, Does.Not.Contain("<"));
+            Assert.That(fileName, Does.Not.Contain(">"));
+            Assert.That(fileName, Does.Not.Contain(":"));
+            Assert.That(fileName, Does.Not.Contain("\""));
+            Assert.That(fileName, Does.Not.Contain("|"));
+            Assert.That(fileName, Does.Not.Contain("?"));
+        }
+
+        [Test]
+        public async Task GivenAStaleTemporaryFile_WhenSavingABill_ThenItIsPreservedAndTheBillIsSaved()
+        {
+            string stalePath = Path.Combine(temporaryDirectory, "test.pdf.tmp");
+            await File.WriteAllTextAsync(stalePath, "Existing download.");
+            using MimePart attachment = CreateMimePart("test.pdf", "application/pdf", "%PDF-bill");
+
+            await processor.ProcessAsync(attachment, "bill", CancellationToken.None);
+
+            Assert.That(await File.ReadAllTextAsync(stalePath), Is.EqualTo("Existing download."));
+            Assert.That(await File.ReadAllTextAsync(Path.Combine(temporaryDirectory, "test.pdf")),
+                Is.EqualTo("%PDF-bill"));
+        }
+
+        [TestCase("Vodafone", "Vodafone_test.pdf")]
+        [TestCase("E-bloc", "E-bloc_test.pdf")]
+        public async Task GivenAProvider_WhenSavingAnAttachment_ThenItsNamePrefixesTheFileName(
+            string providerName,
+            string expectedFileName)
+        {
+            using MimePart attachment = CreateMimePart("test.pdf", "application/pdf", "%PDF-test");
+
+            await processor.ProcessAsync(attachment, "attachment", providerName, CancellationToken.None);
+
+            Assert.That(
+                Directory.GetFiles(temporaryDirectory).Select(Path.GetFileName),
+                Is.EquivalentTo((string[])[expectedFileName]));
+            Assert.That(
+                await File.ReadAllTextAsync(Path.Combine(temporaryDirectory, expectedFileName)),
+                Is.EqualTo("%PDF-test"));
+        }
+
+        [Test]
+        public void GivenANonPartAttachment_WhenProcessingIt_ThenItIsRejectedWithoutCreatingFiles()
+        {
+            using Multipart attachment = new();
+
+            Assert.That(
+                () => processor.ProcessAsync(attachment, "attachment", CancellationToken.None),
+                Throws.TypeOf<InvalidOperationException>());
+            Assert.That(Directory.GetFiles(temporaryDirectory), Is.Empty);
+        }
+
+        [Test]
+        public void GivenCancellation_WhenWritingAnAttachment_ThenTheTemporaryFileIsRemoved()
+        {
+            using MimePart attachment = CreateMimePart("test.pdf", "application/pdf", "%PDF-test");
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.That(
+                () => processor.ProcessAsync(attachment, "attachment", cancellation.Token),
+                Throws.InstanceOf<OperationCanceledException>());
+            Assert.That(Directory.GetFiles(temporaryDirectory), Is.Empty);
+        }
+
+        private static MimePart CreateMimePart(string fileName, string mimeType, string content)
+            => new(mimeType)
+            {
+                FileName = fileName,
+                Content = new MimeContent(new MemoryStream(Encoding.UTF8.GetBytes(content)))
+            };
     }
 }

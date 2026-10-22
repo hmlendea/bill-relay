@@ -5,9 +5,12 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using MimeKit;
+
 using BillRelay.Configuration;
 
 namespace BillRelay.Services
@@ -16,7 +19,10 @@ namespace BillRelay.Services
         ILogger<AttachmentProcessor> logger,
         IOptions<BillRelaySettings> settings) : IAttachmentProcessor
     {
-        private readonly BillRelaySettings settings = settings.Value;
+        private static readonly HashSet<char> invalidFileNameCharacters =
+            [.. Path.GetInvalidFileNameChars(), '<', '>', ':', '"', '|', '?', '*', '/', '\\'];
+
+        private static int MaximumFileNameLength => 255;
 
         public Task ProcessAsync(
             MimeEntity attachment,
@@ -36,20 +42,51 @@ namespace BillRelay.Services
                     $"Attachment with identifier '{attachmentId}' is not a MimePart.");
             }
 
-            string downloadDirectory = settings.Storage.DownloadDirectory;
+            string downloadDirectory = settings.Value.Storage.DownloadDirectory;
             Directory.CreateDirectory(downloadDirectory);
+            string fileName = GetFileName(part, attachmentId, providerName);
+            string filePath = Path.Combine(downloadDirectory, fileName);
+            string temporaryFilePath = Path.Combine(downloadDirectory, $"{Guid.NewGuid():N}.tmp");
+            await WriteTemporaryFileAsync(
+                part,
+                temporaryFilePath,
+                attachmentId,
+                cancellationToken);
+            await FinalizeFileAsync(
+                filePath,
+                temporaryFilePath,
+                attachmentId,
+                cancellationToken);
+        }
 
-            string fileName = SanitizeFileName(part.FileName ?? $"attachment_{attachmentId}.pdf");
+        private static string GetFileName(
+            MimePart part,
+            string attachmentId,
+            string providerName)
+        {
+            string originalFileName = $"attachment_{attachmentId}.pdf";
+
+            if (part.FileName is not null)
+            {
+                originalFileName = part.FileName;
+            }
+
+            string fileName = SanitizeFileName(originalFileName);
 
             if (!string.IsNullOrWhiteSpace(providerName))
             {
                 fileName = SanitizeFileName(providerName + "_" + fileName);
             }
 
-            string filePath = Path.Combine(downloadDirectory, fileName);
+            return fileName;
+        }
 
-            string temporaryFilePath = Path.Combine(downloadDirectory, $"{Guid.NewGuid():N}.tmp");
-
+        private async Task WriteTemporaryFileAsync(
+            MimePart part,
+            string temporaryFilePath,
+            string attachmentId,
+            CancellationToken cancellationToken)
+        {
             try
             {
                 using FileStream fileStream = new(
@@ -60,17 +97,28 @@ namespace BillRelay.Services
                 await part.Content.DecodeToAsync(fileStream, cancellationToken);
                 await fileStream.FlushAsync(cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 if (File.Exists(temporaryFilePath))
                 {
                     File.Delete(temporaryFilePath);
                 }
 
-                logger.LogError(ex, "Failed to write attachment {AttachmentIdentifier}.", attachmentId);
+                logger.LogError(
+                    exception,
+                    "Failed to write attachment {AttachmentIdentifier}.",
+                    attachmentId);
+
                 throw;
             }
+        }
 
+        private async Task FinalizeFileAsync(
+            string filePath,
+            string temporaryFilePath,
+            string attachmentId,
+            CancellationToken cancellationToken)
+        {
             try
             {
                 if (File.Exists(filePath))
@@ -80,8 +128,9 @@ namespace BillRelay.Services
 
                     if (string.Equals(existingHash, newHash, StringComparison.Ordinal))
                     {
-                        logger.LogDebug("Identical file already exists: {FilePath}", filePath);
+                        logger.LogDebug("An identical file already exists: {FilePath}.", filePath);
                         File.Delete(temporaryFilePath);
+
                         return;
                     }
 
@@ -89,45 +138,62 @@ namespace BillRelay.Services
                 }
 
                 File.Move(temporaryFilePath, filePath);
-                logger.LogInformation("Saved attachment to: {FilePath}", filePath);
+                logger.LogInformation("Saved the attachment to: {FilePath}.", filePath);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 if (File.Exists(temporaryFilePath))
                 {
                     File.Delete(temporaryFilePath);
                 }
 
-                logger.LogError(ex, "Failed to finalize attachment {AttachmentIdentifier}.", attachmentId);
+                logger.LogError(
+                    exception,
+                    "Failed to finalize attachment {AttachmentIdentifier}.",
+                    attachmentId);
+
                 throw;
             }
         }
 
         private static string SanitizeFileName(string fileName)
         {
-            HashSet<char> invalidCharacters = new(Path.GetInvalidFileNameChars())
-            {
-                '<', '>', ':', '"', '|', '?', '*', '/', '\\'
-            };
-            string sanitizedFileName = new(fileName.Select(character =>
-                invalidCharacters.Contains(character) ? '_' : character).ToArray());
+            string sanitizedFileName = new(fileName.Select(SanitizeCharacter).ToArray());
 
-            if (sanitizedFileName.Length > 255)
+            if (sanitizedFileName.Length > MaximumFileNameLength)
             {
-                return sanitizedFileName[..255];
+                return sanitizedFileName[..MaximumFileNameLength];
             }
 
             return sanitizedFileName;
         }
 
+        private static char SanitizeCharacter(char character)
+        {
+            if (invalidFileNameCharacters.Contains(character))
+            {
+                return '_';
+            }
+
+            return character;
+        }
+
         private static string GetUniqueFilePath(string filePath)
         {
-            string directory = Path.GetDirectoryName(filePath) ?? ".";
+            string directory = ".";
+            string? parentDirectory = Path.GetDirectoryName(filePath);
+
+            if (parentDirectory is not null)
+            {
+                directory = parentDirectory;
+            }
+
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
             string extension = Path.GetExtension(filePath);
             int counter = 1;
 
             string uniqueFilePath;
+
             do
             {
                 uniqueFilePath = Path.Combine(
@@ -140,10 +206,16 @@ namespace BillRelay.Services
             return uniqueFilePath;
         }
 
-        private static async Task<string> ComputeFileHashAsync(string filePath, CancellationToken cancellationToken)
+        private static async Task<string> ComputeFileHashAsync(
+            string filePath,
+            CancellationToken cancellationToken)
         {
             using SHA256 sha256 = SHA256.Create();
-            using FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using FileStream stream = new(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
             byte[] hash = await sha256.ComputeHashAsync(stream, cancellationToken);
 
             return Convert.ToHexString(hash);
