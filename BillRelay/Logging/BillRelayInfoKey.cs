@@ -22,7 +22,7 @@ namespace BillRelay.Logging
 
         public static LogInfoKey ProviderName => new BillRelayInfoKey(nameof(ProviderName));
 
-        public static LogInfoKey Recipient => new BillRelayInfoKey(nameof(Recipient), true);
+        public static LogInfoKey Recipient => new BillRelayInfoKey(nameof(Recipient));
 
         public static LogInfoKey AttachmentCount => new BillRelayInfoKey(nameof(AttachmentCount));
 
@@ -41,10 +41,6 @@ namespace BillRelay.Logging
         public static LogInfoKey Reason => new BillRelayInfoKey(nameof(Reason));
 
         private BillRelayInfoKey(string name) : base(name)
-        {
-        }
-
-        private BillRelayInfoKey(string name, bool isSensitive) : base(name, isSensitive)
         {
         }
     }

@@ -41,7 +41,7 @@ namespace BillRelay.IntegrationTests.Logging
 
         [TestCase("John Doe.pdf")]
         [TestCase("DummyUser.pdf")]
-        public void GivenSensitiveFileDetails_WhenWritingALog_ThenTheValuesAreMasked(string fileName)
+        public void GivenFileDetails_WhenWritingALog_ThenTheValuesArePreserved(string fileName)
         {
             string logPath = Path.GetTempFileName();
 
@@ -76,7 +76,7 @@ namespace BillRelay.IntegrationTests.Logging
             Assert.That(output, Does.Contain("SaveAttachment"));
             Assert.That(output, Does.Contain("SUCCESS"));
             Assert.That(output, Does.Contain("attachment42"));
-            Assert.That(output, Does.Not.Contain(fileName));
+            Assert.That(output, Does.Contain(fileName));
             Assert.That(output, Does.Contain("FileName"));
             Assert.That(output, Does.Contain("FilePath"));
             Assert.That(output, Does.Contain("StateFilePath"));

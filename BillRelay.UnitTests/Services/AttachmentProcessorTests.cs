@@ -165,7 +165,6 @@ namespace BillRelay.UnitTests.Services
                     It.Is<OperationStatus>(status => string.Equals(status.Name, "Success")),
                     It.Is<LogInfo[]>(details => details.Any(detail =>
                         string.Equals(detail.Key.Name, "FilePath") &&
-                        detail.Key.IsSensitive &&
                         string.Equals(detail.Value, Path.Combine(temporaryDirectory, expectedFileName))))),
                 Times.Once);
         }
