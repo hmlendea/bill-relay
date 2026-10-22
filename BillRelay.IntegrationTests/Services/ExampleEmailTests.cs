@@ -4,10 +4,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 using MimeKit;
+
+using Moq;
+
+using NuciLog.Core;
 
 using NUnit.Framework;
 
@@ -55,7 +58,7 @@ namespace BillRelay.IntegrationTests.Services
                 Storage = new() { DownloadDirectory = outputDirectory }
             };
             AttachmentProcessor processor = new(
-                NullLogger<AttachmentProcessor>.Instance,
+                Mock.Of<ILogger>(),
                 Options.Create(settings));
 
             foreach (string path in paths)

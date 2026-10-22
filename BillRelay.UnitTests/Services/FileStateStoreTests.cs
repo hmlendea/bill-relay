@@ -4,10 +4,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using Moq;
+
+using NuciLog.Core;
 
 using NUnit.Framework;
 
@@ -19,7 +20,7 @@ namespace BillRelay.UnitTests.Services
     [TestFixture]
     public sealed class FileStateStoreTests
     {
-        private Mock<ILogger<FileStateStore>> loggerMock = null!;
+        private Mock<ILogger> loggerMock = null!;
         private IOptions<BillRelaySettings> settings = null!;
         private FileStateStore stateStore = null!;
         private string temporaryStatePath = null!;

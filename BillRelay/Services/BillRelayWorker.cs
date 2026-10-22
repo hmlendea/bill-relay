@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using MailKit;
@@ -17,12 +16,15 @@ using MailKit.Search;
 
 using MimeKit;
 
+using NuciLog.Core;
+
 using BillRelay.Configuration;
+using BillRelay.Logging;
 
 namespace BillRelay.Services
 {
     public sealed class BillRelayWorker(
-        ILogger<BillRelayWorker> logger,
+        ILogger logger,
         IOptions<BillRelaySettings> settings,
         IStateStore stateStore,
         IBillSender billSender,
@@ -34,7 +36,7 @@ namespace BillRelay.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("The BillRelay worker is starting.");
+            logger.Info(BillRelayOperation.RunWorker, OperationStatus.Started);
 
             billSender.ValidateConfiguration();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(Settings.Polling.IntervalSeconds);
@@ -56,7 +58,7 @@ namespace BillRelay.Services
                 }
             }
 
-            logger.LogInformation("The BillRelay worker is stopping.");
+            logger.Info(BillRelayOperation.RunWorker, OperationStatus.Success);
         }
 
         private async Task ProcessInboxSafelyAsync(CancellationToken cancellationToken)
@@ -71,7 +73,7 @@ namespace BillRelay.Services
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "An error occurred while processing the inbox.");
+                logger.Error(BillRelayOperation.ProcessInbox, OperationStatus.Failure, exception);
             }
         }
 
@@ -120,7 +122,10 @@ namespace BillRelay.Services
             DateTimeOffset cutoff = EmailAgePolicy.GetCutoff(Settings.Polling, DateTimeOffset.UtcNow);
             SearchQuery searchQuery = SearchQuery.DeliveredAfter(cutoff.UtcDateTime.Date);
             IList<UniqueId> uniqueIds = await mailbox.SearchAsync(searchQuery, cancellationToken);
-            logger.LogDebug("Found {Count} candidate messages.", uniqueIds.Count);
+            logger.Debug(
+                BillRelayOperation.ProcessInbox,
+                OperationStatus.InProgress,
+                new LogInfo(BillRelayInfoKey.MessageCount, uniqueIds.Count));
 
             if (Equals(uniqueIds.Count, 0))
             {
@@ -174,9 +179,11 @@ namespace BillRelay.Services
                     !BillProviderIdentification.IsBillAttachment(billAttachment, providerName) ||
                     !IsPermittedAttachment(attachment))
                 {
-                    logger.LogDebug(
-                        "Skipping a non-permitted attachment: {FileName}.",
-                        attachment.ContentDisposition?.FileName);
+                    logger.Debug(
+                        BillRelayOperation.ValidateAttachment,
+                        OperationStatus.Failure,
+                        new LogInfo(BillRelayInfoKey.FileName, attachment.ContentDisposition?.FileName),
+                        new LogInfo(BillRelayInfoKey.Reason, "The attachment is not permitted."));
 
                     continue;
                 }
@@ -205,10 +212,11 @@ namespace BillRelay.Services
                     messageId,
                     providerName,
                     cancellationToken);
-                logger.LogInformation(
-                    "Processed the attachment: {FileName} ({AttachmentId}).",
-                    attachment.ContentDisposition?.FileName,
-                    attachmentId);
+                logger.Info(
+                    BillRelayOperation.ProcessAttachment,
+                    OperationStatus.Success,
+                    new LogInfo(BillRelayInfoKey.FileName, attachment.ContentDisposition?.FileName),
+                    new LogInfo(BillRelayInfoKey.AttachmentId, attachmentId));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -216,10 +224,11 @@ namespace BillRelay.Services
             }
             catch (Exception exception)
             {
-                logger.LogError(
+                logger.Error(
+                    BillRelayOperation.ProcessAttachment,
+                    OperationStatus.Failure,
                     exception,
-                    "Failed to process attachment with identifier {AttachmentIdentifier}.",
-                    attachmentId);
+                    new LogInfo(BillRelayInfoKey.AttachmentId, attachmentId));
             }
         }
 
@@ -246,19 +255,23 @@ namespace BillRelay.Services
 
             if (contentLength > Settings.Attachments.MaximumSizeBytes)
             {
-                logger.LogWarning(
-                    "The attachment exceeds the maximum size: {Size} > {MaximumSize}.",
-                    contentLength,
-                    Settings.Attachments.MaximumSizeBytes);
+                logger.Warn(
+                    BillRelayOperation.ValidateAttachment,
+                    OperationStatus.Failure,
+                    new LogInfo(BillRelayInfoKey.ContentLength, contentLength),
+                    new LogInfo(BillRelayInfoKey.MaximumSizeBytes, Settings.Attachments.MaximumSizeBytes),
+                    new LogInfo(BillRelayInfoKey.Reason, "The attachment exceeds the maximum size."));
 
                 return false;
             }
 
             if (!ValidatePdfSignature(part))
             {
-                logger.LogWarning(
-                    "The attachment failed PDF signature validation: {FileName}.",
-                    part.FileName);
+                logger.Warn(
+                    BillRelayOperation.ValidateAttachment,
+                    OperationStatus.Failure,
+                    new LogInfo(BillRelayInfoKey.FileName, part.FileName),
+                    new LogInfo(BillRelayInfoKey.Reason, "The attachment failed PDF signature validation."));
 
                 return false;
             }

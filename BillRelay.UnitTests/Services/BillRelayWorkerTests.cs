@@ -1,10 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using Moq;
+
+using NuciLog.Core;
 
 using NUnit.Framework;
 
@@ -16,7 +17,7 @@ namespace BillRelay.UnitTests.Services
     [TestFixture]
     public sealed class BillRelayWorkerTests
     {
-        private Mock<ILogger<BillRelayWorker>> loggerMock = null!;
+        private Mock<ILogger> loggerMock = null!;
         private Mock<IStateStore> stateStoreMock = null!;
         private Mock<IBillSender> billSenderMock = null!;
         private BillRelayWorker worker = null!;
@@ -64,6 +65,16 @@ namespace BillRelay.UnitTests.Services
                 store => store.InitializeAsync(It.IsAny<CancellationToken>()),
                 Times.Once);
             stateStoreMock.VerifyNoOtherCalls();
+            loggerMock.Verify(
+                logger => logger.Info(
+                    It.Is<Operation>(operation => string.Equals(operation.Name, "RunWorker")),
+                    It.Is<OperationStatus>(status => string.Equals(status.Name, "Started"))),
+                Times.Once);
+            loggerMock.Verify(
+                logger => logger.Info(
+                    It.Is<Operation>(operation => string.Equals(operation.Name, "RunWorker")),
+                    It.Is<OperationStatus>(status => string.Equals(status.Name, "Success"))),
+                Times.Once);
         }
     }
 }

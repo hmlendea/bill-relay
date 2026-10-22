@@ -5,12 +5,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using MimeKit;
 
 using Moq;
+
+using NuciLog.Core;
 
 using NUnit.Framework;
 
@@ -22,7 +23,7 @@ namespace BillRelay.UnitTests.Services
     [TestFixture]
     public sealed class AttachmentProcessorTests
     {
-        private Mock<ILogger<AttachmentProcessor>> loggerMock = null!;
+        private Mock<ILogger> loggerMock = null!;
         private IOptions<BillRelaySettings> settings = null!;
         private AttachmentProcessor processor = null!;
         private string temporaryDirectory = null!;
@@ -158,6 +159,15 @@ namespace BillRelay.UnitTests.Services
             Assert.That(
                 await File.ReadAllTextAsync(Path.Combine(temporaryDirectory, expectedFileName)),
                 Is.EqualTo("%PDF-test"));
+            loggerMock.Verify(
+                logger => logger.Info(
+                    It.Is<Operation>(operation => string.Equals(operation.Name, "SaveAttachment")),
+                    It.Is<OperationStatus>(status => string.Equals(status.Name, "Success")),
+                    It.Is<LogInfo[]>(details => details.Any(detail =>
+                        string.Equals(detail.Key.Name, "FilePath") &&
+                        detail.Key.IsSensitive &&
+                        string.Equals(detail.Value, Path.Combine(temporaryDirectory, expectedFileName))))),
+                Times.Once);
         }
 
         [Test]
@@ -182,6 +192,15 @@ namespace BillRelay.UnitTests.Services
                 () => processor.ProcessAsync(attachment, "attachment", cancellation.Token),
                 Throws.InstanceOf<OperationCanceledException>());
             Assert.That(Directory.GetFiles(temporaryDirectory), Is.Empty);
+            loggerMock.Verify(
+                logger => logger.Error(
+                    It.Is<Operation>(operation => string.Equals(operation.Name, "WriteAttachment")),
+                    It.Is<OperationStatus>(status => string.Equals(status.Name, "Failure")),
+                    It.Is<Exception>(exception => exception is OperationCanceledException),
+                    It.Is<LogInfo[]>(details => details.Any(detail =>
+                        string.Equals(detail.Key.Name, "AttachmentId") &&
+                        string.Equals(detail.Value, "attachment")))),
+                Times.Once);
         }
 
         private static MimePart CreateMimePart(string fileName, string mimeType, string content)

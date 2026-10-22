@@ -5,17 +5,19 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using NuciDAL.Repositories;
 
+using NuciLog.Core;
+
 using BillRelay.Configuration;
+using BillRelay.Logging;
 
 namespace BillRelay.Services
 {
     public sealed class FileStateStore(
-        ILogger<FileStateStore> logger,
+        ILogger logger,
         IOptions<BillRelaySettings> settings) : IStateStore
     {
         private JsonRepository<ProcessedAttachmentRecord>? repository;
@@ -36,7 +38,10 @@ namespace BillRelay.Services
             }
 
             repository = new(stateFilePath);
-            logger.LogDebug("The state store was initialized at: {StateFilePath}.", stateFilePath);
+            logger.Debug(
+                BillRelayOperation.InitializeStateStore,
+                OperationStatus.Success,
+                new LogInfo(BillRelayInfoKey.StateFilePath, stateFilePath));
         }
 
         public Task<bool> IsProcessedAsync(string attachmentId, CancellationToken cancellationToken)
@@ -146,9 +151,10 @@ namespace BillRelay.Services
             if (identifiersToRemove.Length > 0)
             {
                 repository!.SaveChanges();
-                logger.LogDebug(
-                    "Retention removed {RecordCount} records.",
-                    identifiersToRemove.Length);
+                logger.Debug(
+                    BillRelayOperation.ApplyRetention,
+                    OperationStatus.Success,
+                    new LogInfo(BillRelayInfoKey.RecordCount, identifiersToRemove.Length));
             }
         }
     }

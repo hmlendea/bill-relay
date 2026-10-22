@@ -6,11 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using NuciLog;
+using NuciLog.Configuration;
+
 using NuciNotifications.Client;
 using NuciNotifications.Client.Configuration;
 
 using BillRelay.Configuration;
 using BillRelay.Services;
+
+using ILogger = NuciLog.Core.ILogger;
 
 namespace BillRelay
 {
@@ -26,15 +31,16 @@ namespace BillRelay
 
             ConfigureServices(builder);
             builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();
-            builder.Logging.AddDebug();
-            builder.Logging.SetMinimumLevel(LogLevel.Information);
             using IHost host = builder.Build();
             host.Run();
         }
 
         private static void ConfigureServices(HostApplicationBuilder builder)
         {
+            NuciLoggerSettings loggingSettings = new();
+            builder.Configuration.GetSection(nameof(NuciLoggerSettings)).Bind(loggingSettings);
+            builder.Services.AddSingleton(loggingSettings);
+            builder.Services.AddSingleton<ILogger, NuciLogger>();
             builder.Services.Configure<BillRelaySettings>(builder.Configuration);
             builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
             builder.Services.AddSingleton<IStateStore, FileStateStore>();

@@ -6,17 +6,19 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using MimeKit;
 
+using NuciLog.Core;
+
 using BillRelay.Configuration;
+using BillRelay.Logging;
 
 namespace BillRelay.Services
 {
     public sealed class AttachmentProcessor(
-        ILogger<AttachmentProcessor> logger,
+        ILogger logger,
         IOptions<BillRelaySettings> settings) : IAttachmentProcessor
     {
         private static readonly HashSet<char> invalidFileNameCharacters =
@@ -104,10 +106,11 @@ namespace BillRelay.Services
                     File.Delete(temporaryFilePath);
                 }
 
-                logger.LogError(
+                logger.Error(
+                    BillRelayOperation.WriteAttachment,
+                    OperationStatus.Failure,
                     exception,
-                    "Failed to write attachment {AttachmentIdentifier}.",
-                    attachmentId);
+                    new LogInfo(BillRelayInfoKey.AttachmentId, attachmentId));
 
                 throw;
             }
@@ -128,7 +131,11 @@ namespace BillRelay.Services
 
                     if (string.Equals(existingHash, newHash, StringComparison.Ordinal))
                     {
-                        logger.LogDebug("An identical file already exists: {FilePath}.", filePath);
+                        logger.Debug(
+                            BillRelayOperation.SaveAttachment,
+                            OperationStatus.Success,
+                            new LogInfo(BillRelayInfoKey.FilePath, filePath),
+                            new LogInfo(BillRelayInfoKey.Reason, "An identical file already exists."));
                         File.Delete(temporaryFilePath);
 
                         return;
@@ -138,7 +145,10 @@ namespace BillRelay.Services
                 }
 
                 File.Move(temporaryFilePath, filePath);
-                logger.LogInformation("Saved the attachment to: {FilePath}.", filePath);
+                logger.Info(
+                    BillRelayOperation.SaveAttachment,
+                    OperationStatus.Success,
+                    new LogInfo(BillRelayInfoKey.FilePath, filePath));
             }
             catch (Exception exception)
             {
@@ -147,10 +157,11 @@ namespace BillRelay.Services
                     File.Delete(temporaryFilePath);
                 }
 
-                logger.LogError(
+                logger.Error(
+                    BillRelayOperation.SaveAttachment,
+                    OperationStatus.Failure,
                     exception,
-                    "Failed to finalize attachment {AttachmentIdentifier}.",
-                    attachmentId);
+                    new LogInfo(BillRelayInfoKey.AttachmentId, attachmentId));
 
                 throw;
             }
