@@ -26,7 +26,7 @@ namespace BillRelay
         {
             HostApplicationBuilder builder = Host.CreateApplicationBuilder(arguments);
             builder.Configuration
-                .SetBasePath(Directory.GetCurrentDirectory())
+                .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
                 .AddEnvironmentVariables();
 
@@ -47,7 +47,9 @@ namespace BillRelay
             builder.Services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
             builder.Services.AddSingleton<IStateStore, FileStateStore>();
             NuciNotificationsSettings notificationSettings = new();
-            builder.Configuration.GetSection("notifications").Bind(notificationSettings);
+            builder.Configuration
+                .GetSection(nameof(NuciNotificationsSettings))
+                .Bind(notificationSettings);
             ValidateNotifications(notificationSettings);
             builder.Services.AddSingleton<INuciNotificationsClient>(
                 new NuciNotificationsClient(notificationSettings));

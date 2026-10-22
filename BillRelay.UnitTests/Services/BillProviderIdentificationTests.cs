@@ -12,6 +12,7 @@ namespace BillRelay.UnitTests.Services
         [TestCase("Vodafone", "VDF123456789.pdf", "application/pdf", true)]
         [TestCase("Electrica Furnizare", "DII0P123456789.pdf", "application/pdf", true)]
         [TestCase("E-bloc", "Nota de plat\u0103.pdf", "application/pdf", true)]
+        [TestCase("Hidroelectrica", "FX-26112329894.PDF", "application/pdf", true)]
         [TestCase("Vodafone", "terms.pdf", "application/pdf", false)]
         [TestCase("Vodafone", "VDF123.pdf.exe", "application/pdf", false)]
         [TestCase("Vodafone", "VDF123.pdf", "image/png", false)]
@@ -35,6 +36,8 @@ namespace BillRelay.UnitTests.Services
         [TestCase("Factura ta a fost emisa", "https://info.electricafurnizare.ro/", "Electrica Furnizare")]
         [TestCase("\u00centre\u0163inere August 2026", "https://www.e-bloc.ro/", "E-bloc")]
         [TestCase("INTRETINERE August 2026", "https://WWW.E-BLOC.RO/", "E-bloc")]
+        [TestCase("Factura Hidroelectrica Test", "", "Hidroelectrica")]
+        [TestCase("Factura", "https://www.hidroelectrica.ro/", "Hidroelectrica")]
         public void GivenAForwardedBill_WhenIdentifyingItsProvider_ThenTheLinkedProviderIsReturned(
             string subject,
             string address,

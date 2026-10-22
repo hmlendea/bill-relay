@@ -19,6 +19,7 @@ namespace BillRelay.Services
                 "Vodafone" => VodafoneAttachmentPattern(),
                 "Electrica Furnizare" => ElectricaAttachmentPattern(),
                 "E-bloc" => EBlocAttachmentPattern(),
+                "Hidroelectrica" => HidroelectricaAttachmentPattern(),
                 _ => UnmatchedAttachmentPattern()
             };
             string fileName = string.Empty;
@@ -48,6 +49,11 @@ namespace BillRelay.Services
             if (!HasBillingSubject(subject))
             {
                 return null;
+            }
+
+            if (subject.Contains("hidroelectrica", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Hidroelectrica";
             }
 
             string[] domains = LinkPattern().Matches(GetBody(message))
@@ -110,6 +116,11 @@ namespace BillRelay.Services
                 return "E-bloc";
             }
 
+            if (IsDomain(domain, "hidroelectrica.ro"))
+            {
+                return "Hidroelectrica";
+            }
+
             return string.Empty;
         }
 
@@ -143,6 +154,9 @@ namespace BillRelay.Services
 
         [GeneratedRegex("\\ANota de plat[\u0103a]\\.pdf\\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
         private static partial Regex EBlocAttachmentPattern();
+
+        [GeneratedRegex(@"\AFX-[0-9]+\.pdf\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex HidroelectricaAttachmentPattern();
 
         [GeneratedRegex(@"\b\B", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
         private static partial Regex UnmatchedAttachmentPattern();
