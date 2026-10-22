@@ -4,6 +4,8 @@ namespace BillRelay.Configuration
 {
     public sealed class BillRelaySettings
     {
+        public DeliverySettings Delivery { get; set; } = new();
+
         [JsonPropertyName("imap")]
         public ImapSettings Imap { get; set; } = new();
 

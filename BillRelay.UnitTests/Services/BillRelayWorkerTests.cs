@@ -66,8 +66,9 @@ public class BillRelayWorkerTests
         worker = new BillRelayWorker(
             loggerMock.Object,
             settingsMock.Object,
-            attachmentProcessorMock.Object,
-            stateStoreMock.Object);
+            stateStoreMock.Object,
+            Mock.Of<IBillSender>(),
+            Mock.Of<IBillDelivery>());
     }
 
     [Test]

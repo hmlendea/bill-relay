@@ -19,8 +19,9 @@ namespace BillRelay.Services
     public sealed class BillRelayWorker(
         ILogger<BillRelayWorker> logger,
         IOptions<BillRelaySettings> settings,
-        IAttachmentProcessor attachmentProcessor,
-        IStateStore stateStore) : BackgroundService
+        IStateStore stateStore,
+        IBillSender billSender,
+        IBillDelivery billDelivery) : BackgroundService
     {
         private readonly BillRelaySettings settings = settings.Value;
 
@@ -28,6 +29,9 @@ namespace BillRelay.Services
         {
             logger.LogInformation("BillRelay worker starting");
 
+            billSender.ValidateConfiguration();
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(settings.Polling.IntervalSeconds);
+            _ = EmailAgePolicy.GetCutoff(settings.Polling, DateTimeOffset.UtcNow);
             await stateStore.InitializeAsync(stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
@@ -64,12 +68,12 @@ namespace BillRelay.Services
 
             try
             {
-                await client.ConnectAsync(settings.Imap.Server, settings.Imap.Port, settings.Imap.UseSsl, cancellationToken);
-
                 if (!settings.Imap.ValidateCertificates)
                 {
                     client.ServerCertificateValidationCallback = (_, _, _, _) => true;
                 }
+
+                await client.ConnectAsync(settings.Imap.Server, settings.Imap.Port, settings.Imap.UseSsl, cancellationToken);
 
                 await client.AuthenticateAsync(settings.Imap.Username, settings.Imap.Password, cancellationToken);
 
@@ -145,21 +149,19 @@ namespace BillRelay.Services
                 }
 
                 string attachmentId = ComputeAttachmentId(messageId, attachment);
-                if (await stateStore.IsProcessedAsync(attachmentId, cancellationToken))
-                {
-                    logger.LogDebug("Attachment already processed: {AttachmentId}", attachmentId);
-                    continue;
-                }
-
                 try
                 {
-                    await attachmentProcessor.ProcessAsync(
-                        attachment,
+                    await billDelivery.DeliverAsync(
+                        billAttachment,
                         attachmentId,
+                        messageId,
                         providerName,
                         cancellationToken);
-                    await stateStore.MarkProcessedAsync(attachmentId, messageId, cancellationToken);
                     logger.LogInformation("Processed attachment: {FileName} ({AttachmentId})", attachment.ContentDisposition?.FileName, attachmentId);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception exception)
                 {

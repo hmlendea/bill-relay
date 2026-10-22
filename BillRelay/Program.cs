@@ -7,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using BillRelay.Configuration;
 using BillRelay.Services;
+using NuciNotifications.Client;
+using NuciNotifications.Client.Configuration;
 
 namespace BillRelay
 {
@@ -24,6 +26,13 @@ namespace BillRelay
             builder.Services.Configure<BillRelaySettings>(builder.Configuration);
             builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
             builder.Services.AddSingleton<IStateStore, FileStateStore>();
+            NuciNotificationsSettings notificationSettings = new();
+            builder.Configuration.GetSection("notifications").Bind(notificationSettings);
+            ValidateNotifications(notificationSettings);
+            builder.Services.AddSingleton<INuciNotificationsClient>(
+                new NuciNotificationsClient(notificationSettings));
+            builder.Services.AddSingleton<IBillSender, BillSender>();
+            builder.Services.AddSingleton<IBillDelivery, BillDelivery>();
             builder.Services.AddHostedService<BillRelayWorker>();
 
             builder.Logging.ClearProviders();
@@ -33,6 +42,21 @@ namespace BillRelay
 
             IHost host = builder.Build();
             await host.RunAsync();
+        }
+
+        private static void ValidateNotifications(NuciNotificationsSettings settings)
+        {
+            if (!Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out Uri? endpoint) ||
+                !string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Notifications require an absolute HTTPS base URL.");
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.ApiKey) ||
+                string.IsNullOrWhiteSpace(settings.HmacSharedSecretKey))
+            {
+                throw new InvalidOperationException("Notification API credentials must be configured.");
+            }
         }
     }
 }

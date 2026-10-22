@@ -122,6 +122,20 @@ public class AttachmentProcessorTests
         Assert.That(fileName, Does.Not.Contain("?"));
     }
 
+    [Test]
+    public async Task GivenAStaleTemporaryFile_WhenSavingABill_ThenItIsPreservedAndTheBillIsSaved()
+    {
+        string stalePath = Path.Combine(tempDirectory, "test.pdf.tmp");
+        await File.WriteAllTextAsync(stalePath, "Existing download.");
+        using MimePart attachment = CreateMimePart("test.pdf", "application/pdf", "%PDF-bill");
+
+        await processor.ProcessAsync(attachment, "bill", CancellationToken.None);
+
+        Assert.That(await File.ReadAllTextAsync(stalePath), Is.EqualTo("Existing download."));
+        Assert.That(await File.ReadAllTextAsync(Path.Combine(tempDirectory, "test.pdf")),
+            Is.EqualTo("%PDF-bill"));
+    }
+
     private static MimePart CreateMimePart(string fileName, string mimeType, string content)
     {
         MimePart part = new(mimeType)

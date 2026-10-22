@@ -38,6 +38,8 @@ namespace BillRelay.Services
 
         public Task<bool> IsProcessedAsync(string attachmentId, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (repository is null)
             {
                 throw new InvalidOperationException("State store not initialized");
@@ -48,6 +50,8 @@ namespace BillRelay.Services
 
         public Task MarkProcessedAsync(string attachmentId, string messageId, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (repository is null)
             {
                 throw new InvalidOperationException("State store not initialized");
@@ -67,6 +71,8 @@ namespace BillRelay.Services
 
         public Task ApplyRetentionAsync(int maxAgeDays, int maxFiles, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (repository is null)
             {
                 throw new InvalidOperationException("State store not initialized");
@@ -79,17 +85,21 @@ namespace BillRelay.Services
             {
                 DateTimeOffset cutoffDate = DateTimeOffset.UtcNow.AddDays(-maxAgeDays);
                 identifiersToRemove.AddRange(records
-                    .Where(r => r.ProcessedAt < cutoffDate)
-                    .Select(r => r.Id));
+                        .Where(record => record.ProcessedAt < cutoffDate)
+                        .Select(record => record.Id));
             }
+
+                    HashSet<string> expiredIdentifiers = identifiersToRemove.ToHashSet(StringComparer.Ordinal);
+                    records = records.Where(record => !expiredIdentifiers.Contains(record.Id)).ToList();
 
             if (maxFiles > 0 && records.Count > maxFiles)
             {
                 int excessCount = records.Count - maxFiles;
                 IEnumerable<string> oldestRecordIdentifiers = records
-                    .OrderBy(r => r.ProcessedAt)
+                    .OrderBy(record => record.ProcessedAt)
+                    .ThenBy(record => record.Id, StringComparer.Ordinal)
                     .Take(excessCount)
-                    .Select(r => r.Id);
+                    .Select(record => record.Id);
                 identifiersToRemove.AddRange(oldestRecordIdentifiers);
             }
 

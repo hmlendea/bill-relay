@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -77,6 +78,42 @@ public class FileStateStoreIntegrationTests
         Assert.That(await newStore.IsProcessedAsync("attach2", CancellationToken.None), Is.True);
 
         newStore.Dispose();
+    }
+
+    [Test]
+    public async Task GivenExpiredAndExcessRecords_WhenApplyingRetention_ThenRecentRecordsArePreserved()
+    {
+        DateTimeOffset currentTime = DateTimeOffset.UtcNow;
+        string oldTimestamp = currentTime.AddDays(-10).ToString("O", CultureInfo.InvariantCulture);
+        string recentTimestamp = currentTime.ToString("O", CultureInfo.InvariantCulture);
+        string json = $$"""
+            [
+              {"id":"expired","messageId":"message","processedAt":"{{oldTimestamp}}"},
+              {"id":"recent1","messageId":"message","processedAt":"{{recentTimestamp}}"},
+              {"id":"recent2","messageId":"message","processedAt":"{{recentTimestamp}}"}
+            ]
+            """;
+        await File.WriteAllTextAsync(tempStatePath, json);
+        await stateStore.InitializeAsync(CancellationToken.None);
+
+        await stateStore.ApplyRetentionAsync(7, 2, CancellationToken.None);
+
+        Assert.That(await stateStore.IsProcessedAsync("expired", CancellationToken.None), Is.False);
+        Assert.That(await stateStore.IsProcessedAsync("recent1", CancellationToken.None));
+        Assert.That(await stateStore.IsProcessedAsync("recent2", CancellationToken.None));
+    }
+
+    [Test]
+    public async Task GivenCancellation_WhenRecordingAnAttachment_ThenTheLedgerIsNotModified()
+    {
+        await stateStore.InitializeAsync(CancellationToken.None);
+        using CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+
+        Assert.That(
+            () => stateStore.MarkProcessedAsync("canceled", "message", cancellation.Token),
+            Throws.TypeOf<OperationCanceledException>());
+        Assert.That(await stateStore.IsProcessedAsync("canceled", CancellationToken.None), Is.False);
     }
 
     [Test]

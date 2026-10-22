@@ -48,7 +48,7 @@ namespace BillRelay.Services
 
             string filePath = Path.Combine(downloadDirectory, fileName);
 
-            string temporaryFilePath = filePath + ".tmp";
+            string temporaryFilePath = Path.Combine(downloadDirectory, $"{Guid.NewGuid():N}.tmp");
 
             try
             {
@@ -107,7 +107,7 @@ namespace BillRelay.Services
         {
             HashSet<char> invalidCharacters = new(Path.GetInvalidFileNameChars())
             {
-                '<', '>', ':', '"', '|', '?', '*'
+                '<', '>', ':', '"', '|', '?', '*', '/', '\\'
             };
             string sanitizedFileName = new(fileName.Select(character =>
                 invalidCharacters.Contains(character) ? '_' : character).ToArray());
@@ -140,11 +140,12 @@ namespace BillRelay.Services
             return uniqueFilePath;
         }
 
-        private async Task<string> ComputeFileHashAsync(string filePath, CancellationToken cancellationToken)
+        private static async Task<string> ComputeFileHashAsync(string filePath, CancellationToken cancellationToken)
         {
             using SHA256 sha256 = SHA256.Create();
             using FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             byte[] hash = await sha256.ComputeHashAsync(stream, cancellationToken);
+
             return Convert.ToHexString(hash);
         }
     }
