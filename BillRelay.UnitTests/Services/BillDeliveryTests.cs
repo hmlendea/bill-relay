@@ -2,13 +2,18 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Microsoft.Extensions.Options;
+
 using MimeKit;
 
 using Moq;
 
 using NUnit.Framework;
 
+using NuciLog.Core;
+
 using BillRelay.Services;
+using BillRelay.Configuration;
 
 namespace BillRelay.UnitTests.Services
 {
@@ -23,6 +28,7 @@ namespace BillRelay.UnitTests.Services
             Mock<IAttachmentProcessor> processor = new();
             Mock<IBillSender> sender = new();
             Mock<IStateStore> store = new();
+            Mock<ILogger> logger = new();
             using MimePart attachment = new("application/pdf");
             bool wasSent = false;
             sender.Setup(instance => instance.SendAsync(attachment, "Vodafone", CancellationToken.None))
@@ -40,7 +46,12 @@ namespace BillRelay.UnitTests.Services
             store.Setup(instance => instance.MarkProcessedAsync("delivery:attachment", "message", CancellationToken.None))
                 .Callback(() => Assert.That(wasSent))
                 .Returns(Task.CompletedTask);
-            BillDelivery delivery = new(processor.Object, sender.Object, store.Object);
+            BillDelivery delivery = new(
+                processor.Object,
+                sender.Object,
+                store.Object,
+                logger.Object,
+                Options.Create(new BillRelaySettings()));
 
             if (!isSuccessful)
             {
@@ -64,9 +75,15 @@ namespace BillRelay.UnitTests.Services
             Mock<IAttachmentProcessor> processor = new(MockBehavior.Strict);
             Mock<IBillSender> sender = new(MockBehavior.Strict);
             Mock<IStateStore> store = new();
+            Mock<ILogger> logger = new();
             store.Setup(instance => instance.IsProcessedAsync("delivery:attachment", CancellationToken.None))
                 .ReturnsAsync(true);
-            BillDelivery delivery = new(processor.Object, sender.Object, store.Object);
+            BillDelivery delivery = new(
+                processor.Object,
+                sender.Object,
+                store.Object,
+                logger.Object,
+                Options.Create(new BillRelaySettings()));
             using MimePart attachment = new("application/pdf");
 
             await delivery.DeliverAsync(attachment, "attachment", "message", "Vodafone", CancellationToken.None);

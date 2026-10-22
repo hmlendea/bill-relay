@@ -17,6 +17,21 @@ namespace BillRelay.Services
         Task InitializeAsync(CancellationToken cancellationToken);
 
         /// <summary>
+        /// Loads the IMAP checkpoint.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The persisted checkpoint, or a new checkpoint.</returns>
+        Task<ImapCheckpoint> GetCheckpointAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Saves the IMAP checkpoint.
+        /// </summary>
+        /// <param name="checkpoint">The checkpoint to save.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task SaveCheckpointAsync(ImapCheckpoint checkpoint, CancellationToken cancellationToken);
+
+        /// <summary>
         /// Checks if an attachment has already been processed.
         /// </summary>
         /// <param name="attachmentId">The attachment identifier.</param>

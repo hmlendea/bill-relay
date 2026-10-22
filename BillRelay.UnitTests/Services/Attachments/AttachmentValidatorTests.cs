@@ -6,10 +6,6 @@ using Microsoft.Extensions.Options;
 
 using MimeKit;
 
-using Moq;
-
-using NuciLog.Core;
-
 using NUnit.Framework;
 
 using BillRelay.Configuration;
@@ -20,14 +16,12 @@ namespace BillRelay.UnitTests.Services.Attachments
     [TestFixture]
     public sealed class AttachmentValidatorTests
     {
-        private Mock<ILogger> loggerMock = null!;
         private BillRelaySettings settings = null!;
         private AttachmentValidator validator = null!;
 
         [SetUp]
         public void SetUp()
         {
-            loggerMock = new();
             settings = new()
             {
                 Attachments = new()
@@ -36,7 +30,7 @@ namespace BillRelay.UnitTests.Services.Attachments
                     PermittedMimeTypes = ["application/pdf"]
                 }
             };
-            validator = new(loggerMock.Object, Options.Create(settings));
+            validator = new(Options.Create(settings));
         }
 
         [TestCase("%PDF-42", true)]
@@ -74,7 +68,6 @@ namespace BillRelay.UnitTests.Services.Attachments
             using MimePart attachment = BuildAttachment(mimeType, "%PDF-");
 
             Assert.That(validator.IsPermitted(attachment), Is.False);
-            loggerMock.VerifyNoOtherCalls();
         }
 
         [Test]
@@ -83,28 +76,17 @@ namespace BillRelay.UnitTests.Services.Attachments
             using Multipart attachment = new();
 
             Assert.That(validator.IsPermitted(attachment), Is.False);
-            loggerMock.VerifyNoOtherCalls();
         }
 
-        [TestCase("%PDF-0042", "ContentLength", "9")]
-        [TestCase("%PNG-", "FileName", "bill.pdf")]
-        public void GivenAnInvalidAttachment_WhenValidatingIt_ThenAStructuredWarningIsWritten(
+        [TestCase("%PDF-0042", "The attachment size (9 bytes) exceeds the maximum of 8 bytes.")]
+        [TestCase("%PNG-", "The attachment does not start with the required PDF signature '%PDF-'.")]
+        public void GivenAnInvalidAttachment_WhenGettingItsFailureReason_ThenTheExactReasonIsReturned(
             string content,
-            string expectedKey,
-            string expectedValue)
+            string expectedReason)
         {
             using MimePart attachment = BuildAttachment("application/pdf", content);
 
-            Assert.That(validator.IsPermitted(attachment), Is.False);
-            loggerMock.Verify(
-                logger => logger.Warn(
-                    It.Is<Operation>(operation => string.Equals(operation.Name, "ValidateAttachment")),
-                    It.Is<OperationStatus>(status => string.Equals(status.Name, "Failure")),
-                    It.Is<LogInfo[]>(details => details.Any(detail =>
-                        string.Equals(detail.Key.Name, expectedKey) &&
-                        string.Equals(detail.Value, expectedValue)))),
-                Times.Once);
-            loggerMock.VerifyNoOtherCalls();
+            Assert.That(validator.GetFailureReason(attachment), Is.EqualTo(expectedReason));
         }
 
         [TestCase("%PDF-")]
@@ -120,7 +102,6 @@ namespace BillRelay.UnitTests.Services.Attachments
             attachment.Content.DecodeTo(decodedContent);
 
             Assert.That(Encoding.UTF8.GetString(decodedContent.ToArray()), Is.EqualTo(content));
-            loggerMock.VerifyNoOtherCalls();
         }
 
         private static MimePart BuildAttachment(string mimeType, string content) => new(mimeType)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,6 +60,32 @@ namespace BillRelay.Services
                 new LogInfo(BillRelayInfoKey.StateFilePath, stateFilePath));
         }
 
+        public async Task<ImapCheckpoint> GetCheckpointAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string checkpointPath = GetCheckpointPath();
+
+            if (!File.Exists(checkpointPath))
+            {
+                return new ImapCheckpoint();
+            }
+
+            string json = await File.ReadAllTextAsync(checkpointPath, cancellationToken);
+            return JsonSerializer.Deserialize<ImapCheckpoint>(json) ?? new ImapCheckpoint();
+        }
+
+        public async Task SaveCheckpointAsync(
+            ImapCheckpoint checkpoint,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string checkpointPath = GetCheckpointPath();
+            string temporaryPath = checkpointPath + ".tmp";
+            string json = JsonSerializer.Serialize(checkpoint);
+            await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
+            File.Move(temporaryPath, checkpointPath, true);
+        }
+
         public Task<bool> IsProcessedAsync(string attachmentId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -105,6 +132,8 @@ namespace BillRelay.Services
         }
 
         public void Dispose() => repository = null;
+
+        private string GetCheckpointPath() => settings.Value.Storage.StateFilePath + ".checkpoint";
 
         private static IEnumerable<string> GetExpiredIdentifiers(
             IEnumerable<ProcessedAttachmentDataObject> records,

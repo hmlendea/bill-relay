@@ -14,14 +14,18 @@ using NuciDAL.IO;
 using NuciNotifications.Client;
 using NuciNotifications.Client.Requests;
 
+using NuciLog.Core;
+
 using BillRelay.Configuration;
 using BillRelay.DataAccess.DataObjects;
+using BillRelay.Logging;
 
 namespace BillRelay.Services
 {
     public sealed class BillSender(
         INuciNotificationsClient client,
-        IOptions<BillRelaySettings> settings) : IBillSender
+        IOptions<BillRelaySettings> settings,
+        ILogger logger) : IBillSender
     {
         private static string ProviderNamePlaceholder => "{ProviderName}";
 
@@ -47,6 +51,12 @@ namespace BillRelay.Services
                     WebUtility.HtmlEncode(providerName),
                     StringComparison.Ordinal);
             EmailAttachmentRequest bill = await BuildAttachmentAsync(attachment, cancellationToken);
+            logger.Info(
+                BillRelayOperation.ProcessAttachment,
+                OperationStatus.InProgress,
+                new LogInfo(BillRelayInfoKey.FileName, bill.FileName),
+                new LogInfo(BillRelayInfoKey.ContentLength, bill.Content.Length),
+                new LogInfo(BillRelayInfoKey.EncodedContentLength, bill.Content.Length));
             cancellationToken.ThrowIfCancellationRequested();
             await client.SendEmail(
                 delivery.SenderName,
@@ -63,9 +73,16 @@ namespace BillRelay.Services
             using MemoryStream content = new();
             await attachment.Content.DecodeToAsync(content, cancellationToken);
 
+            string fileName = attachment.FileName;
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = "bill.pdf";
+            }
+
             return new()
             {
-                FileName = Path.GetFileName(attachment.FileName.Replace('\\', '/')),
+                FileName = Path.GetFileName(fileName.Replace('\\', '/')),
                 Content = Convert.ToBase64String(content.ToArray())
             };
         }

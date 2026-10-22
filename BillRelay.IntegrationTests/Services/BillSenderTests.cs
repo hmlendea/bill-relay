@@ -15,6 +15,8 @@ using Moq;
 using NuciNotifications.Client;
 using NuciNotifications.Client.Requests;
 
+using NuciLog.Core;
+
 using NUnit.Framework;
 
 using BillRelay.Configuration;
@@ -61,7 +63,7 @@ namespace BillRelay.IntegrationTests.Services
             {
                 Delivery = new() { Recipient = "recipient@example.com", TemplatePath = templatePath }
             };
-            BillSender sender = new(client.Object, Options.Create(settings));
+            BillSender sender = new(client.Object, Options.Create(settings), Mock.Of<ILogger>());
             using MimePart attachment = new("application/pdf")
             {
                 FileName = "bill.pdf",

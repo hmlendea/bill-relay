@@ -36,6 +36,8 @@ namespace BillRelay.UnitTests.Services
                 billSenderMock.Object,
                 Mock.Of<IBillDelivery>(),
                 Mock.Of<IAttachmentValidator>());
+            stateStoreMock.Setup(store => store.GetCheckpointAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ImapCheckpoint());
         }
 
         [TearDown]
@@ -65,6 +67,9 @@ namespace BillRelay.UnitTests.Services
             billSenderMock.Verify(sender => sender.ValidateConfiguration(), Times.Once);
             stateStoreMock.Verify(
                 store => store.InitializeAsync(It.IsAny<CancellationToken>()),
+                Times.Once);
+            stateStoreMock.Verify(
+                store => store.GetCheckpointAsync(It.IsAny<CancellationToken>()),
                 Times.Once);
             stateStoreMock.VerifyNoOtherCalls();
             loggerMock.Verify(
