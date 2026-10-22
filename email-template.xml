@@ -1,0 +1,4 @@
+<EmailTemplate>
+  <Subject>New bill from {ProviderName}</Subject>
+  <Body><![CDATA[Your bill from {ProviderName} is attached.]]></Body>
+</EmailTemplate>

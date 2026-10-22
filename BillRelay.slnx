@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BillRelay/BillRelay.csproj" />
+  <Project Path="BillRelay.ArchitectureTests/BillRelay.ArchitectureTests.csproj" />
+  <Project Path="BillRelay.IntegrationTests/BillRelay.IntegrationTests.csproj" />
+  <Project Path="BillRelay.UnitTests/BillRelay.UnitTests.csproj" />
+</Solution>
