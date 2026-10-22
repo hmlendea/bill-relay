@@ -32,6 +32,7 @@ Bill Relay is a .NET 10 worker service that monitors an IMAP inbox for supported
 - [GitHub Actions](#github-actions)
 - [Project Structure](#project-structure)
   - [Projects and Packages](#projects-and-packages)
+- [Architecture](#architecture)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 - [Project Engagement](#project-engagement)
@@ -215,6 +216,12 @@ The solution contains the executable service and separate unit, integration, and
 | `BillRelay.UnitTests` | NUnit test project | Unit coverage for processing and configuration behavior. |
 | `BillRelay.IntegrationTests` | NUnit test project | Integration coverage for delivery, persistence, and email samples. |
 | `BillRelay.ArchitectureTests` | NUnit test project | Dependency and architecture constraints. |
+
+## 🏗️ Architecture
+
+Bill Relay uses a hosted worker and focused services to poll IMAP, validate and persist bill attachments, and submit email notifications.
+
+See the [architecture documentation](ARCHITECTURE.md) for the system context, principal components, runtime flows, ownership boundaries, dependencies, constraints, and extension points.
 
 ## 🚢 Deployment
 
