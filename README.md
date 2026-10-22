@@ -1,3 +1,4 @@
+[![Donate](https://img.shields.io/badge/-%E2%99%A5%20Donate-%23ff69b4)](https://hmlendea.go.ro/funding)
 [![Build Status](https://github.com/hmlendea/bill-relay/actions/workflows/dotnet.yml/badge.svg)](https://github.com/hmlendea/bill-relay/actions/workflows/dotnet.yml)
 [![License](https://img.shields.io/github/license/hmlendea/bill-relay)](https://github.com/hmlendea/bill-relay/blob/master/LICENSE)
 
@@ -238,7 +239,9 @@ When doing so, please:
 
 Discovered a problem or have a suggestion? [Open an issue](https://github.com/hmlendea/bill-relay/issues)!
 
-If you find this project useful, consider starring ⭐️ it on GitHub!
+If you find this project useful, consider funding it or starring ⭐️ it on GitHub!
+
+[![Donate](https://raw.githubusercontent.com/hmlendea/readme-assets/master/donate_generic.png)](https://hmlendea.go.ro/funding)
 
 ## 📄 License
 
