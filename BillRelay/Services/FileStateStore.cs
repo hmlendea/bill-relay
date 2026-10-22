@@ -12,6 +12,7 @@ using NuciDAL.Repositories;
 using NuciLog.Core;
 
 using BillRelay.Configuration;
+using BillRelay.DataAccess.DataObjects;
 using BillRelay.Logging;
 
 namespace BillRelay.Services
@@ -20,7 +21,21 @@ namespace BillRelay.Services
         ILogger logger,
         IOptions<BillRelaySettings> settings) : IStateStore
     {
-        private JsonRepository<ProcessedAttachmentRecord>? repository;
+        private JsonRepository<ProcessedAttachmentDataObject>? repository;
+
+        private JsonRepository<ProcessedAttachmentDataObject> Repository
+        {
+            get
+            {
+                if (repository is null)
+                {
+                    throw new InvalidOperationException(
+                        "The state store must be initialized before accessing attachment records.");
+                }
+
+                return repository;
+            }
+        }
 
         public async Task InitializeAsync(CancellationToken cancellationToken)
         {
@@ -48,12 +63,7 @@ namespace BillRelay.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (repository is null)
-            {
-                throw new InvalidOperationException("The state store must be initialized before checking attachments.");
-            }
-
-            return Task.FromResult(repository.ContainsId(attachmentId));
+            return Task.FromResult(Repository.ContainsId(attachmentId));
         }
 
         public Task MarkProcessedAsync(
@@ -63,20 +73,16 @@ namespace BillRelay.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (repository is null)
-            {
-                throw new InvalidOperationException("The state store must be initialized before recording attachments.");
-            }
-
-            ProcessedAttachmentRecord record = new()
+            JsonRepository<ProcessedAttachmentDataObject> stateRepository = Repository;
+            ProcessedAttachmentDataObject record = new()
             {
                 Id = attachmentId,
                 MessageId = messageId,
                 ProcessedAt = DateTimeOffset.UtcNow
             };
 
-            repository.TryAdd(record);
-            repository.SaveChanges();
+            stateRepository.TryAdd(record);
+            stateRepository.SaveChanges();
 
             return Task.CompletedTask;
         }
@@ -88,12 +94,7 @@ namespace BillRelay.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (repository is null)
-            {
-                throw new InvalidOperationException("The state store must be initialized before applying retention.");
-            }
-
-            List<ProcessedAttachmentRecord> records = repository.GetAll().ToList();
+            List<ProcessedAttachmentDataObject> records = Repository.GetAll().ToList();
             List<string> identifiersToRemove = GetExpiredIdentifiers(records, maximumAgeDays).ToList();
             HashSet<string> expiredIdentifiers = identifiersToRemove.ToHashSet(StringComparer.Ordinal);
             records = records.Where(record => !expiredIdentifiers.Contains(record.Id)).ToList();
@@ -106,7 +107,7 @@ namespace BillRelay.Services
         public void Dispose() => repository = null;
 
         private static IEnumerable<string> GetExpiredIdentifiers(
-            IEnumerable<ProcessedAttachmentRecord> records,
+            IEnumerable<ProcessedAttachmentDataObject> records,
             int maximumAgeDays)
         {
             if (maximumAgeDays <= 0)
@@ -121,7 +122,7 @@ namespace BillRelay.Services
         }
 
         private static IEnumerable<string> GetExcessIdentifiers(
-            IEnumerable<ProcessedAttachmentRecord> records,
+            IEnumerable<ProcessedAttachmentDataObject> records,
             int maximumFiles)
         {
             if (maximumFiles <= 0)
@@ -129,14 +130,15 @@ namespace BillRelay.Services
                 return [];
             }
 
-            ProcessedAttachmentRecord[] remainingRecords = records.ToArray();
+            ProcessedAttachmentDataObject[] remainingRecords = records.ToArray();
             int excessCount = Math.Max(0, remainingRecords.Length - maximumFiles);
 
-            return remainingRecords
-                .OrderBy(record => record.ProcessedAt)
-                .ThenBy(record => record.Id, StringComparer.Ordinal)
-                .Take(excessCount)
-                .Select(record => record.Id);
+            return
+                remainingRecords
+                    .OrderBy(record => record.ProcessedAt)
+                    .ThenBy(record => record.Id, StringComparer.Ordinal)
+                    .Take(excessCount)
+                    .Select(record => record.Id);
         }
 
         private void RemoveRecords(IEnumerable<string> identifiers)
@@ -145,12 +147,12 @@ namespace BillRelay.Services
 
             foreach (string identifier in identifiersToRemove)
             {
-                repository!.TryRemove(identifier);
+                Repository.TryRemove(identifier);
             }
 
             if (identifiersToRemove.Length > 0)
             {
-                repository!.SaveChanges();
+                Repository.SaveChanges();
                 logger.Debug(
                     BillRelayOperation.ApplyRetention,
                     OperationStatus.Success,

@@ -14,6 +14,7 @@ using NuciNotifications.Client.Configuration;
 
 using BillRelay.Configuration;
 using BillRelay.Services;
+using BillRelay.Services.Attachments;
 
 using ILogger = NuciLog.Core.ILogger;
 
@@ -43,6 +44,7 @@ namespace BillRelay
             builder.Services.AddSingleton<ILogger, NuciLogger>();
             builder.Services.Configure<BillRelaySettings>(builder.Configuration);
             builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
+            builder.Services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
             builder.Services.AddSingleton<IStateStore, FileStateStore>();
             NuciNotificationsSettings notificationSettings = new();
             builder.Configuration.GetSection("notifications").Bind(notificationSettings);

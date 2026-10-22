@@ -64,6 +64,49 @@ namespace BillRelay.UnitTests.Services
             Assert.That(File.Exists(temporaryStatePath));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task GivenAnUnavailableStore_WhenAccessingRecords_ThenInitializationIsRequired(
+            bool isDisposed)
+        {
+            if (isDisposed)
+            {
+                await stateStore.InitializeAsync(CancellationToken.None);
+                stateStore.Dispose();
+                loggerMock.Invocations.Clear();
+            }
+
+            Assert.That(
+                () => stateStore.IsProcessedAsync("attachment42", CancellationToken.None),
+                Throws.TypeOf<InvalidOperationException>());
+            Assert.That(
+                () => stateStore.MarkProcessedAsync("attachment42", "message42", CancellationToken.None),
+                Throws.TypeOf<InvalidOperationException>());
+            Assert.That(
+                () => stateStore.ApplyRetentionAsync(7, 42, CancellationToken.None),
+                Throws.TypeOf<InvalidOperationException>());
+            Assert.That(File.Exists(temporaryStatePath), Is.EqualTo(isDisposed));
+            loggerMock.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public void GivenCancellation_WhenAccessingAnUnavailableStore_ThenCancellationTakesPrecedence()
+        {
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.That(
+                () => stateStore.IsProcessedAsync("attachment42", cancellation.Token),
+                Throws.TypeOf<OperationCanceledException>());
+            Assert.That(
+                () => stateStore.MarkProcessedAsync("attachment42", "message42", cancellation.Token),
+                Throws.TypeOf<OperationCanceledException>());
+            Assert.That(
+                () => stateStore.ApplyRetentionAsync(7, 42, cancellation.Token),
+                Throws.TypeOf<OperationCanceledException>());
+            Assert.That(File.Exists(temporaryStatePath), Is.False);
+        }
+
         [Test]
         public async Task GivenAnUnprocessedAttachment_WhenCheckingItsState_ThenFalseIsReturned()
         {

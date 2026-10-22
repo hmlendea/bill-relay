@@ -2,9 +2,9 @@ using System;
 
 using NuciDAL.DataObjects;
 
-namespace BillRelay.Services
+namespace BillRelay.DataAccess.DataObjects
 {
-    public sealed class ProcessedAttachmentRecord : EntityBase
+    public sealed class ProcessedAttachmentDataObject : EntityBase
     {
         public string MessageId { get; set; } = string.Empty;
 

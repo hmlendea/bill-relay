@@ -15,6 +15,7 @@ using NuciNotifications.Client;
 using NuciNotifications.Client.Requests;
 
 using BillRelay.Configuration;
+using BillRelay.DataAccess.DataObjects;
 
 namespace BillRelay.Services
 {
@@ -45,13 +46,7 @@ namespace BillRelay.Services
                     ProviderNamePlaceholder,
                     WebUtility.HtmlEncode(providerName),
                     StringComparison.Ordinal);
-            using MemoryStream content = new();
-            await attachment.Content.DecodeToAsync(content, cancellationToken);
-            EmailAttachmentRequest bill = new()
-            {
-                FileName = Path.GetFileName(attachment.FileName.Replace('\\', '/')),
-                Content = Convert.ToBase64String(content.ToArray())
-            };
+            EmailAttachmentRequest bill = await BuildAttachmentAsync(attachment, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             await client.SendEmail(
                 delivery.SenderName,
@@ -59,6 +54,20 @@ namespace BillRelay.Services
                 subject,
                 body,
                 [bill]);
+        }
+
+        private static async Task<EmailAttachmentRequest> BuildAttachmentAsync(
+            MimePart attachment,
+            CancellationToken cancellationToken)
+        {
+            using MemoryStream content = new();
+            await attachment.Content.DecodeToAsync(content, cancellationToken);
+
+            return new()
+            {
+                FileName = Path.GetFileName(attachment.FileName.Replace('\\', '/')),
+                Content = Convert.ToBase64String(content.ToArray())
+            };
         }
 
         private static EmailTemplateDataObject LoadTemplate(string path)

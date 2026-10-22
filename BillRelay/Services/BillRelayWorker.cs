@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,6 +19,7 @@ using NuciLog.Core;
 
 using BillRelay.Configuration;
 using BillRelay.Logging;
+using BillRelay.Services.Attachments;
 
 namespace BillRelay.Services
 {
@@ -28,7 +28,8 @@ namespace BillRelay.Services
         IOptions<BillRelaySettings> settings,
         IStateStore stateStore,
         IBillSender billSender,
-        IBillDelivery billDelivery) : BackgroundService
+        IBillDelivery billDelivery,
+        IAttachmentValidator attachmentValidator) : BackgroundService
     {
         private static int AttachmentIdentifierLength => 16;
 
@@ -177,7 +178,7 @@ namespace BillRelay.Services
 
                 if (attachment is not MimePart billAttachment ||
                     !BillProviderIdentification.IsBillAttachment(billAttachment, providerName) ||
-                    !IsPermittedAttachment(attachment))
+                    !attachmentValidator.IsPermitted(attachment))
                 {
                     logger.Debug(
                         BillRelayOperation.ValidateAttachment,
@@ -230,62 +231,6 @@ namespace BillRelay.Services
                     exception,
                     new LogInfo(BillRelayInfoKey.AttachmentId, attachmentId));
             }
-        }
-
-        private bool IsPermittedAttachment(MimeEntity attachment)
-        {
-            if (attachment is not MimePart part)
-            {
-                return false;
-            }
-
-            string mimeType = part.ContentType.MimeType;
-
-            if (!Settings.Attachments.PermittedMimeTypes.Contains(mimeType))
-            {
-                return false;
-            }
-
-            long contentLength = 0;
-
-            if (part.Content?.Stream is not null)
-            {
-                contentLength = part.Content.Stream.Length;
-            }
-
-            if (contentLength > Settings.Attachments.MaximumSizeBytes)
-            {
-                logger.Warn(
-                    BillRelayOperation.ValidateAttachment,
-                    OperationStatus.Failure,
-                    new LogInfo(BillRelayInfoKey.ContentLength, contentLength),
-                    new LogInfo(BillRelayInfoKey.MaximumSizeBytes, Settings.Attachments.MaximumSizeBytes),
-                    new LogInfo(BillRelayInfoKey.Reason, "The attachment exceeds the maximum size."));
-
-                return false;
-            }
-
-            if (!ValidatePdfSignature(part))
-            {
-                logger.Warn(
-                    BillRelayOperation.ValidateAttachment,
-                    OperationStatus.Failure,
-                    new LogInfo(BillRelayInfoKey.FileName, part.FileName),
-                    new LogInfo(BillRelayInfoKey.Reason, "The attachment failed PDF signature validation."));
-
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool ValidatePdfSignature(MimePart part)
-        {
-            using MemoryStream stream = new();
-            part.Content.DecodeTo(stream);
-            byte[] bytes = stream.ToArray();
-
-            return bytes.AsSpan().StartsWith("%PDF-"u8);
         }
 
         private static string ComputeAttachmentId(string messageId, MimeEntity attachment)

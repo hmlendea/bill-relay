@@ -1,6 +1,6 @@
 using System.Xml.Serialization;
 
-namespace BillRelay.Services
+namespace BillRelay.DataAccess.DataObjects
 {
     [XmlRoot("EmailTemplate")]
     public sealed class EmailTemplateDataObject

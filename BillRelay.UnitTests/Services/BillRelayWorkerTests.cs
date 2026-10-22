@@ -11,6 +11,7 @@ using NUnit.Framework;
 
 using BillRelay.Configuration;
 using BillRelay.Services;
+using BillRelay.Services.Attachments;
 
 namespace BillRelay.UnitTests.Services
 {
@@ -33,7 +34,8 @@ namespace BillRelay.UnitTests.Services
                 Options.Create(new BillRelaySettings()),
                 stateStoreMock.Object,
                 billSenderMock.Object,
-                Mock.Of<IBillDelivery>());
+                Mock.Of<IBillDelivery>(),
+                Mock.Of<IAttachmentValidator>());
         }
 
         [TearDown]
