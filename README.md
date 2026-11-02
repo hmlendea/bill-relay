@@ -245,6 +245,8 @@ When doing so, please:
 - Include tests for additional or modified functionality
 - Raise a new [issue](https://github.com/hmlendea/bill-relay/issues) for problems or suggestions
 
+See the [contributing guidelines](./CONTRIBUTING.md) for details on how to report issues, suggest enhancements, and submit changes.
+
 ## 🔒 Security
 
 Bill Relay documents coordinated vulnerability reporting, supported versions, and security scope for the self-hosted worker.
