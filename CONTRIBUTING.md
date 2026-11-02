@@ -15,6 +15,7 @@ This document covers the guidelines and processes for contributing to this proje
   - [Code Style](#code-style)
   - [Testing](#testing)
   - [Documentation](#documentation)
+- [Code of Conduct](#code-of-conduct)
 - [Security](#security)
 - [License](#license)
 - [Getting Assistance](#getting-assistance)
@@ -99,6 +100,10 @@ BILLRELAY_EXAMPLE_DIRECTORY="/path/to/email-samples" dotnet test BillRelay.Integ
 - Revise relevant docs for changes.
 - Follow the documentation style guide.
 - Preview changes locally if possible.
+
+## 📋 Code of Conduct
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## 🔒 Security
 
