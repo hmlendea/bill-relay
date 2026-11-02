@@ -13,6 +13,8 @@ namespace BillRelay.UnitTests.Services
         [TestCase("Electrica Furnizare", "DII0P123456789.pdf", "application/pdf", true)]
         [TestCase("E-bloc", "Nota de plat\u0103.pdf", "application/pdf", true)]
         [TestCase("Hidroelectrica", "FX-26112329894.PDF", "application/pdf", true)]
+        [TestCase("E.ON", "E.ON_Factura_12345.pdf", "application/pdf", true)]
+        [TestCase("E.ON", "factura_eon_2026.pdf", "application/pdf", true)]
         [TestCase("Vodafone", "terms.pdf", "application/pdf", false)]
         [TestCase("Vodafone", "VDF123.pdf.exe", "application/pdf", false)]
         [TestCase("Vodafone", "VDF123.pdf", "image/png", false)]
@@ -38,6 +40,9 @@ namespace BillRelay.UnitTests.Services
         [TestCase("INTRETINERE August 2026", "https://WWW.E-BLOC.RO/", "E-bloc")]
         [TestCase("Factura Hidroelectrica Test", "", "Hidroelectrica")]
         [TestCase("Factura", "https://www.hidroelectrica.ro/", "Hidroelectrica")]
+        [TestCase("Factura ta E.ON a fost emis\u0103", "https://www.eon.ro/descarcare-factura?ac=002103941994", "E.ON")]
+        [TestCase("Factura E.ON", "https://noutati.myline-eon.ro/click/12345", "E.ON")]
+        [TestCase("Factura E.ON", "https://myline-eon.ro/some-link", "E.ON")]
         public void GivenAForwardedBill_WhenIdentifyingItsProvider_ThenTheLinkedProviderIsReturned(
             string subject,
             string address,
@@ -55,6 +60,9 @@ namespace BillRelay.UnitTests.Services
         [TestCase("Factura", "https://example.com/vodafone.ro")]
         [TestCase("Factura", "https://[invalid")]
         [TestCase("Factura", "https://vodafone.ro/ https://myelectrica.ro/")]
+        [TestCase("Factura", "https://eon.ro.example.com/")]
+        [TestCase("Factura", "https://example.com/eon.ro")]
+        [TestCase("Factura", "https://myline-eon.ro.example.com/")]
         public void GivenUnreliableProviderEvidence_WhenIdentifyingItsProvider_ThenNoProviderIsReturned(
             string subject,
             string body)

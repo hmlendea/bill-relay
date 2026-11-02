@@ -36,6 +36,8 @@ namespace BillRelay.Logging
 
         public static LogInfoKey EncodedContentLength => new BillRelayInfoKey(nameof(EncodedContentLength));
 
+        public static LogInfoKey Url => new BillRelayInfoKey(nameof(Url));
+
         public static LogInfoKey MaximumSizeBytes => new BillRelayInfoKey(nameof(MaximumSizeBytes));
 
         public static LogInfoKey Reason => new BillRelayInfoKey(nameof(Reason));

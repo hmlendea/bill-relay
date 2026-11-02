@@ -43,6 +43,7 @@ namespace BillRelay
             builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
             builder.Services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
             builder.Services.AddSingleton<IStateStore, FileStateStore>();
+            builder.Services.AddHttpClient<IEOnBillDownloader, EOnBillDownloader>();
             NuciNotificationsSettings notificationSettings = new();
             builder.Configuration
                 .GetSection(nameof(NuciNotificationsSettings))
