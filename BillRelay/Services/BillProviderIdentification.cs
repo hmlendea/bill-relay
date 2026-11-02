@@ -16,10 +16,11 @@ namespace BillRelay.Services
         {
             Regex pattern = providerName switch
             {
-                "Vodafone" => VodafoneAttachmentPattern(),
-                "Electrica Furnizare" => ElectricaAttachmentPattern(),
                 "E-bloc" => EBlocAttachmentPattern(),
+                "E.ON" => EOnAttachmentPattern(),
+                "Electrica Furnizare" => ElectricaAttachmentPattern(),
                 "Hidroelectrica" => HidroelectricaAttachmentPattern(),
+                "Vodafone" => VodafoneAttachmentPattern(),
                 _ => UnmatchedAttachmentPattern()
             };
             string fileName = string.Empty;
@@ -121,6 +122,13 @@ namespace BillRelay.Services
                 return "Hidroelectrica";
             }
 
+            if (IsDomain(domain, "eon.ro") ||
+                IsDomain(domain, "myline-eon.ro") ||
+                IsDomain(domain, "noutati.myline-eon.ro"))
+            {
+                return "E.ON";
+            }
+
             return string.Empty;
         }
 
@@ -157,6 +165,9 @@ namespace BillRelay.Services
 
         [GeneratedRegex(@"\AFX-[0-9]+\.pdf\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
         private static partial Regex HidroelectricaAttachmentPattern();
+
+        [GeneratedRegex(@"\A.*\.pdf\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
+        private static partial Regex EOnAttachmentPattern();
 
         [GeneratedRegex(@"\b\B", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 1000)]
         private static partial Regex UnmatchedAttachmentPattern();

@@ -35,7 +35,8 @@ namespace BillRelay.UnitTests.Services
                 stateStoreMock.Object,
                 billSenderMock.Object,
                 Mock.Of<IBillDelivery>(),
-                Mock.Of<IAttachmentValidator>());
+                Mock.Of<IAttachmentValidator>(),
+                Mock.Of<IEOnBillDownloader>());
             stateStoreMock.Setup(store => store.GetCheckpointAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ImapCheckpoint());
         }

@@ -12,5 +12,9 @@ namespace BillRelay.Configuration
         [JsonPropertyName("maxSizeBytes")]
         [ConfigurationKeyName("maxSizeBytes")]
         public long MaximumSizeBytes { get; set; } = 25_000_000;
+
+        [JsonPropertyName("downloadTimeoutSeconds")]
+        [ConfigurationKeyName("downloadTimeoutSeconds")]
+        public int DownloadTimeoutSeconds { get; set; } = 30;
     }
 }

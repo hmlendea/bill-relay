@@ -29,7 +29,8 @@ namespace BillRelay.Services
         IStateStore stateStore,
         IBillSender billSender,
         IBillDelivery billDelivery,
-        IAttachmentValidator attachmentValidator) : BackgroundService
+        IAttachmentValidator attachmentValidator,
+        IEOnBillDownloader eOnBillDownloader) : BackgroundService
     {
         private static int AttachmentIdentifierLength => 16;
 
@@ -214,6 +215,13 @@ namespace BillRelay.Services
             }
 
             string messageId = $"{uniqueIdValidity}:{uniqueId.Id}";
+
+            if (string.Equals(providerName, "E.ON", StringComparison.OrdinalIgnoreCase))
+            {
+                await ProcessEOnMessageAsync(message, messageId, cancellationToken);
+                return;
+            }
+
             int attachmentCount = message.Attachments.Count();
             logger.Info(
                 BillRelayOperation.ProcessInbox,
@@ -256,6 +264,34 @@ namespace BillRelay.Services
                     providerName,
                     cancellationToken);
             }
+        }
+
+        private async Task ProcessEOnMessageAsync(
+            MimeMessage message,
+            string messageId,
+            CancellationToken cancellationToken)
+        {
+            logger.Info(
+                BillRelayOperation.ProcessInbox,
+                OperationStatus.InProgress,
+                new LogInfo(BillRelayInfoKey.MessageId, messageId),
+                new LogInfo(BillRelayInfoKey.ProviderName, "E.ON"),
+                new LogInfo(BillRelayInfoKey.Reason, "Downloading E.ON bill from link."));
+
+            MimePart? pdfAttachment = await eOnBillDownloader.DownloadBillAsync(message, messageId, cancellationToken);
+
+            if (pdfAttachment is null)
+            {
+                logger.Error(
+                    BillRelayOperation.ProcessInbox,
+                    OperationStatus.Failure,
+                    new LogInfo(BillRelayInfoKey.MessageId, messageId),
+                    new LogInfo(BillRelayInfoKey.ProviderName, "E.ON"),
+                    new LogInfo(BillRelayInfoKey.Reason, "Failed to download E.ON bill PDF."));
+                return;
+            }
+
+            await DeliverAttachmentAsync(pdfAttachment, messageId, "E.ON", cancellationToken);
         }
 
         private string? GetAttachmentRejectionReason(MimePart attachment, string providerName)
