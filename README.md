@@ -253,6 +253,10 @@ Bill Relay documents coordinated vulnerability reporting, supported versions, an
 
 For information on reporting security vulnerabilities, see [SECURITY.md](./SECURITY.md).
 
+## 📜 Code of Conduct
+
+See the [Code of Conduct](./CODE_OF_CONDUCT.md) for the standards of conduct expected in all project spaces.
+
 ## 💝 Project Engagement
 
 Discovered a problem or have a suggestion? [Open an issue](https://github.com/hmlendea/bill-relay/issues)!
