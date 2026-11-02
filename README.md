@@ -35,6 +35,7 @@ Bill Relay is a .NET 10 worker service that monitors an IMAP inbox for supported
 - [Architecture](#architecture)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
+- [Security](#security)
 - [Project Engagement](#project-engagement)
 - [License](#license)
 
@@ -243,6 +244,12 @@ When doing so, please:
 - Properly test all modifications, including edge cases and error conditions
 - Include tests for additional or modified functionality
 - Raise a new [issue](https://github.com/hmlendea/bill-relay/issues) for problems or suggestions
+
+## 🔒 Security
+
+Bill Relay documents coordinated vulnerability reporting, supported versions, and security scope for the self-hosted worker.
+
+For information on reporting security vulnerabilities, see [SECURITY.md](./SECURITY.md).
 
 ## 💝 Project Engagement
 
