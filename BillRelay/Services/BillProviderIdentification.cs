@@ -122,7 +122,8 @@ namespace BillRelay.Services
                 return "Hidroelectrica";
             }
 
-            if (IsDomain(domain, "myline-eon.ro") ||
+            if (IsDomain(domain, "eon.ro") ||
+                IsDomain(domain, "myline-eon.ro") ||
                 IsDomain(domain, "noutati.myline-eon.ro"))
             {
                 return "E.ON";
