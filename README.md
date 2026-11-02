@@ -142,6 +142,8 @@ Bill Relay authenticates to the IMAP server with the configured mailbox credenti
 
 Bill Relay processes email metadata and invoice attachments from the configured mailbox, stores validated files locally, and transmits forwarded attachments to NuciNotifications for delivery. The service persists checkpoint and delivery state so messages and attachments are not repeatedly processed.
 
+For the detailed description of how the application handles privacy and personal data, see [PRIVACY.md](./PRIVACY.md).
+
 | Data | Purpose | Storage | Retention | Optional |
 |------|---------|---------|-----------|----------|
 | Email metadata | Provider and bill identification | Process memory and logs | Runtime-dependent | No |
