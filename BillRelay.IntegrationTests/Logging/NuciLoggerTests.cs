@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 using Microsoft.Extensions.Configuration;
@@ -20,16 +21,18 @@ namespace BillRelay.IntegrationTests.Logging
         [Test]
         public void GivenLoggingConfiguration_WhenResolvingTheLogger_ThenNuciLogUsesTheConfiguredSettings()
         {
-            string settingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
             IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(settingsPath)
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["NuciLoggerSettings:MinimumLevel"] = "Info",
+                    ["NuciLoggerSettings:IsFileOutputEnabled"] = "false"
+                })
                 .Build();
-            NuciLoggerSettings settings = new();
-            configuration.GetSection(nameof(NuciLoggerSettings)).Bind(settings);
             ServiceCollection services = new();
-            services.AddSingleton(settings);
+            services.AddNuciLoggerSettings(configuration);
             services.AddSingleton<ILogger, NuciLogger>();
             using ServiceProvider provider = services.BuildServiceProvider();
+            NuciLoggerSettings settings = provider.GetRequiredService<NuciLoggerSettings>();
 
             Assert.That(settings.MinimumLevel, Is.EqualTo(LogLevel.Info));
             Assert.That(settings.IsFileOutputEnabled, Is.False);

@@ -7,7 +7,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using NuciLog;
-using NuciLog.Configuration;
 
 using NuciNotifications.Client;
 using NuciNotifications.Client.Configuration;
@@ -38,9 +37,7 @@ namespace BillRelay
 
         private static void ConfigureServices(HostApplicationBuilder builder)
         {
-            NuciLoggerSettings loggingSettings = new();
-            builder.Configuration.GetSection(nameof(NuciLoggerSettings)).Bind(loggingSettings);
-            builder.Services.AddSingleton(loggingSettings);
+            builder.Services.AddNuciLoggerSettings(builder.Configuration);
             builder.Services.AddSingleton<ILogger, NuciLogger>();
             builder.Services.Configure<BillRelaySettings>(builder.Configuration);
             builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
