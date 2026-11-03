@@ -17,7 +17,7 @@ sequenceDiagram
     participant Disk as Local Filesystem
 
     Worker->>Delivery: DeliverAsync(attachment, attachmentId, messageId, provider)
-    
+
     Delivery->>State: IsProcessedAsync(deliveryId)
     alt Already Processed
         State-->>Delivery: true
@@ -28,14 +28,14 @@ sequenceDiagram
         Processor->>Processor: Compute SHA256 hash
         Processor->>Disk: Verify hash, atomic move to final path
         Processor-->>Delivery: Success
-        
+
         Delivery->>Sender: SendAsync(attachment, provider)
         Sender->>Sender: Load email template
         Sender->>Sender: Replace {ProviderName} placeholder
         Sender->>Sender: Decode attachment to Base64
         Sender->>API: SendEmail(sender, recipient, subject, body, [attachment])
         API-->>Sender: Success/Failure
-        
+
         alt Send Success
             Sender-->>Delivery: Return
             Delivery->>State: MarkProcessedAsync(deliveryId, messageId)
@@ -92,11 +92,11 @@ public async Task<string> ProcessAsync(
 
     // 2. Sanitize filename
     var safeName = SanitizeFileName(originalFileName);
-    
+
     // 3. Prefix with provider
     var prefixedName = $"{providerName}_{safeName}";
     var targetPath = Path.Combine(_storageSettings.DownloadDirectory, prefixedName);
-    
+
     // 4. Deduplication: check existing file hash
     if (File.Exists(targetPath))
     {
@@ -115,12 +115,12 @@ public async Task<string> ProcessAsync(
     {
         await using (var tempStream = File.Create(tempPath))
             await content.CopyToAsync(tempStream, ct);
-        
+
         // Verify hash
         var verifyHash = await ComputeFileHashAsync(tempPath, ct);
         if (verifyHash != attachmentId)
             throw new InvalidOperationException("Hash mismatch after write");
-        
+
         Directory.CreateDirectory(_storageSettings.DownloadDirectory);
         File.Move(tempPath, targetPath, overwrite: true);
         return attachmentId;
@@ -162,17 +162,17 @@ public async Task SendAsync(MimePart attachment, string providerName, Cancellati
 {
     // 1. Validate recipient
     _ = new MailAddress(settings.Value.Delivery.Recipient);
-    
+
     // 2. Load template
     var template = LoadTemplate(settings.Value.Delivery.TemplatePath);
-    
+
     // 3. Replace placeholder
     var subject = template.Subject.Replace("{ProviderName}", providerName);
     var body = template.Body.Replace("{ProviderName}", WebUtility.HtmlEncode(providerName));
-    
+
     // 4. Build attachment request
     var bill = await BuildAttachmentAsync(attachment, ct);
-    
+
     // 5. Send via NuciNotifications
     await client.SendEmail(
         settings.Value.Delivery.SenderName,
@@ -186,7 +186,7 @@ private async Task<EmailAttachmentRequest> BuildAttachmentAsync(MimePart attachm
 {
     using var content = new MemoryStream();
     await attachment.Content.DecodeToAsync(content, ct);
-    
+
     return new EmailAttachmentRequest
     {
         FileName = Path.GetFileName(attachment.FileName?.Replace('\\', '/') ?? "bill.pdf"),
@@ -211,7 +211,7 @@ public Task MarkProcessedAsync(string attachmentId, string messageId, Cancellati
         MessageId = messageId,       // IMAP Message-ID header
         ProcessedAt = DateTimeOffset.UtcNow
     };
-    
+
     Repository.TryAdd(record);  // Ignores if ID exists
     Repository.SaveChanges();   // Writes JSON file
 }

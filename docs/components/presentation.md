@@ -12,10 +12,10 @@ The presentation layer is the **entry point** and **host** of the application. B
 public static async Task Main(string[] args)
 {
     var builder = Host.CreateApplicationBuilder(args);
-    
+
     // Configuration, validation, DI, logging setup
     // ... (see host-and-composition.md)
-    
+
     var host = builder.Build();
     await host.RunAsync();  // Blocks until shutdown
 }

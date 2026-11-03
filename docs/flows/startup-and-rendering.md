@@ -63,7 +63,7 @@ All settings classes in `BillRelay.Configuration` namespace.
 ```csharp
 static void ValidateNotifications(NuciNotificationsSettings settings)
 {
-    if (!Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var uri) || 
+    if (!Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var uri) ||
         uri.Scheme != "https")
         throw new InvalidOperationException("BaseUrl must be absolute HTTPS");
     if (string.IsNullOrWhiteSpace(settings.ApiKey))
@@ -105,10 +105,10 @@ protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 
     // Initialize state store
     await _stateStore.InitializeAsync(stoppingToken);
-    
+
     // Load checkpoint
     var checkpoint = await _stateStore.GetCheckpointAsync(stoppingToken);
-    
+
     // Polling loop
     while (!stoppingToken.IsCancellationRequested)
     {
@@ -127,10 +127,10 @@ public async Task InitializeAsync(CancellationToken cancellationToken)
     string? directory = Path.GetDirectoryName(stateFilePath);
     if (!string.IsNullOrEmpty(directory))
         Directory.CreateDirectory(directory);
-    
+
     if (!File.Exists(stateFilePath))
         await File.WriteAllTextAsync(stateFilePath, "[]", cancellationToken);
-    
+
     repository = new JsonRepository<ProcessedAttachmentDataObject>(stateFilePath);
 }
 ```
@@ -147,7 +147,7 @@ public async Task<ImapCheckpoint> GetCheckpointAsync(CancellationToken cancellat
     string checkpointPath = GetCheckpointPath(); // stateFilePath + ".checkpoint"
     if (!File.Exists(checkpointPath))
         return new ImapCheckpoint(); // Empty = first run
-    
+
     string json = await File.ReadAllTextAsync(checkpointPath, cancellationToken);
     return JsonSerializer.Deserialize<ImapCheckpoint>(json) ?? new ImapCheckpoint();
 }

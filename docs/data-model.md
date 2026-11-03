@@ -128,7 +128,7 @@ public static Provider IdentifyProvider(MimeMessage message)
     if (subject.Contains("factura") && from.Contains("vodafone")) return Provider.Vodafone;
 
     // Electrica Furnizare
-    if (subject.Contains("factura") && (from.Contains("electrifica") || from.Contains("electrificafurnizare"))) 
+    if (subject.Contains("factura") && (from.Contains("electrifica") || from.Contains("electrificafurnizare")))
         return Provider.ElectricaFurnizare;
 
     // E-bloc

@@ -365,9 +365,9 @@ public class NewIntegration : INewIntegration
 {
     private readonly NewIntegrationSettings _settings;
     private readonly HttpClient _http;
-    
+
     public NewIntegration(IOptions<NewIntegrationSettings> settings, HttpClient http) { ... }
-    
+
     public async Task<Result> DoSomethingAsync(CancellationToken ct) { ... }
 }
 

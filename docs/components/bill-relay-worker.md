@@ -54,12 +54,12 @@ private async Task ProcessInboxAsync(CancellationToken cancellationToken)
 {
     using var client = new ImapClient();
     await client.ConnectAsync(_imapSettings.Server, _imapSettings.Port, _imapSettings.IsSslEnabled, cancellationToken);
-    
+
     if (!_imapSettings.IsCertificateValidationEnabled)
         client.ServerCertificateValidationCallback = (_, _, _, _) => true;
 
     await client.AuthenticateAsync(_imapSettings.Username, _imapSettings.Password, cancellationToken);
-    
+
     var mailbox = await client.GetFolderAsync(_imapSettings.Mailbox, cancellationToken);
     await mailbox.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
 
@@ -81,7 +81,7 @@ private async Task ProcessInboxAsync(CancellationToken cancellationToken)
 private async Task ProcessMailboxAsync(IMailFolder mailbox, CancellationToken cancellationToken)
 {
     var checkpoint = await _stateStore.GetCheckpointAsync();
-    
+
     // Validate UID validity
     if (checkpoint.UidValidity != mailbox.UidValidity.ToString())
     {
@@ -161,7 +161,7 @@ private async Task DeliverAttachmentAsync(MimePart attachment, Provider provider
     stream.Position = 0;
 
     var attachmentId = await _attachmentProcessor.ProcessAsync(stream, attachment.FileName, provider, cancellationToken);
-    
+
     if (await _stateStore.IsProcessedAsync(attachmentId)) return;
 
     await _billDelivery.DeliverAsync(attachmentId, provider, messageId, cancellationToken);

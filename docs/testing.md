@@ -234,7 +234,7 @@ public async Task GivenCancellation_WhenWriting_ThenOperationCanceled()
 {
     using var cts = new CancellationTokenSource();
     cts.Cancel();
-    
+
     await Assert.ThatAsync(
         () => processor.ProcessAsync(attachment, "id", cts.Token),
         Throws.InstanceOf<OperationCanceledException>());

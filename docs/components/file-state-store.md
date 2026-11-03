@@ -150,7 +150,7 @@ public async Task GivenExistingState_WhenMarkProcessed_ThenEntryAdded()
 {
     var store = CreateStore();
     await store.InitializeAsync(CancellationToken.None);
-    
+
     var data = new ProcessedAttachmentDataObject
     {
         AttachmentId = "sha256:abc123",
@@ -160,9 +160,9 @@ public async Task GivenExistingState_WhenMarkProcessed_ThenEntryAdded()
         FileSizeBytes = 1024,
         MimeType = "application/pdf"
     };
-    
+
     await store.MarkProcessedAsync(data, CancellationToken.None);
-    
+
     var exists = await store.IsProcessedAsync("sha256:abc123", CancellationToken.None);
     Assert.That(exists, Is.True);
 }

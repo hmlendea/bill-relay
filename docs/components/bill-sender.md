@@ -141,12 +141,12 @@ public async Task GivenValidPdf_WhenSending_ThenRequestBuiltCorrectly()
     var pdfBytes = "test pdf content"u8.ToArray();
     var tempFile = Path.GetTempFileName();
     await File.WriteAllBytesAsync(tempFile, pdfBytes);
-    
+
     await sender.SendAsync("test@example.com", "Vodafone", tempFile, "bill.pdf", CancellationToken.None);
-    
+
     // Verify client called with correct request
     _clientMock.Verify(c => c.SendAsync(
-        It.Is<NotificationRequest>(r => 
+        It.Is<NotificationRequest>(r =>
             r.To == "test@example.com" &&
             r.Subject == "Bill from Vodafone" &&
             r.Attachments[0].ContentBase64 == Convert.ToBase64String(pdfBytes)),

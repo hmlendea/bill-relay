@@ -33,20 +33,20 @@ public async Task<string> ProcessAsync(Stream content, string originalFileName, 
 
     // 2. Sanitise filename
     var safeName = SanitiseFileName(originalFileName);
-    
+
     // 3. Prefix with provider name
     var prefixedName = $"{provider}_{safeName}";
-    
+
     // 4. Target path
     var targetPath = Path.Combine(_storageSettings.DownloadDirectory, prefixedName);
-    
+
     // 5. Deduplication: check if identical content already exists
     if (File.Exists(targetPath))
     {
         using var existingStream = File.OpenRead(targetPath);
         var existingHash = await sha256.ComputeHashAsync(existingStream, cancellationToken);
         var existingId = Convert.ToHexString(existingHash).ToLowerInvariant();
-        
+
         if (existingId == attachmentId)
         {
             _logger.LogInformation("Attachment already exists, skipping: {FilePath}", targetPath);
@@ -69,7 +69,7 @@ public async Task<string> ProcessAsync(Stream content, string originalFileName, 
         {
             var verifyHash = await sha256.ComputeHashAsync(verifyStream, cancellationToken);
             var verifyId = Convert.ToHexString(verifyHash).ToLowerInvariant();
-            
+
             if (verifyId != attachmentId)
             {
                 throw new InvalidOperationException("Hash mismatch after write");
@@ -81,7 +81,7 @@ public async Task<string> ProcessAsync(Stream content, string originalFileName, 
 
         // Atomic move (overwrites on Windows, replaces on Unix)
         File.Move(tempPath, targetPath, overwrite: true);
-        
+
         _logger.LogInformation("Saved attachment: {FilePath}", targetPath);
         return attachmentId;
     }
@@ -100,7 +100,7 @@ private static string SanitiseFileName(string fileName)
 {
     var invalidChars = Path.GetInvalidFileNameChars();
     var sb = new StringBuilder(fileName.Length);
-    
+
     foreach (var c in fileName)
     {
         if (Array.IndexOf(invalidChars, c) >= 0)
@@ -108,7 +108,7 @@ private static string SanitiseFileName(string fileName)
         else
             sb.Append(c);
     }
-    
+
     var result = sb.ToString();
     // Trim trailing dots/spaces (Windows reserved)
     return result.TrimEnd('.', ' ');

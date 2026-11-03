@@ -21,24 +21,24 @@ sequenceDiagram
         Worker->>IMAP: AuthenticateAsync(username, password)
         Worker->>IMAP: GetFolderAsync(mailbox)
         Worker->>IMAP: OpenAsync(ReadWrite)
-        
+
         alt UidValidity Changed
             Worker->>State: SaveCheckpointAsync(new checkpoint with current UidValidity)
         end
-        
+
         Worker->>IMAP: SearchAsync(DeliveredAfter(cutoff))
         IMAP-->>Worker: Candidate UIDs
-        
+
         Worker->>IMAP: FetchAsync(UID, InternalDate)
         IMAP-->>Worker: Message summaries
-        
+
         loop Each Eligible Message (UID > checkpoint, date >= cutoff)
             Worker->>IMAP: GetMessageAsync(UID)
             IMAP-->>Worker: Full MimeMessage
-            
+
             Worker->>Provider: IdentifyProvider(message)
             Provider-->>Worker: Provider name or null
-            
+
             alt Provider Identified & Enabled
                 alt Provider == E.ON
                     Worker->>EOn: DownloadBillAsync(message, messageId)
@@ -47,15 +47,15 @@ sequenceDiagram
                     Worker->>Validator: GetFailureReason(attachment) per attachment
                     Validator-->>Worker: Failure reason or null
                 end
-                
+
                 alt Valid Attachment Found
                     Worker->>Worker: DeliverAttachmentAsync(attachment, provider, messageId)
                 end
             end
-            
+
             Worker->>State: SaveCheckpointAsync(UID, message.Date)
         end
-        
+
         Worker->>IMAP: CloseAsync()
         Worker->>IMAP: DisconnectAsync()
     end

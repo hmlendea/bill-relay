@@ -90,15 +90,15 @@ public string? GetFailureReason(MimeEntity attachment)
 {
     if (attachment is not MimePart part)
         return "The attachment is not a MIME part.";
-    
+
     if (!settings.Value.Attachments.PermittedMimeTypes.Contains(part.ContentType.MimeType))
         return $"The MIME type '{part.ContentType.MimeType}' is not permitted.";
-    
+
     // ... size check ...
-    
+
     if (!HasValidPdfSignature(part))
         return "The attachment does not start with the required PDF signature '%PDF-'.";
-    
+
     return null; // Success
 }
 ```
@@ -113,10 +113,10 @@ public string? GetFailureReason(MimeEntity attachment)
 public async Task DeliverAsync(...)
 {
     string deliveryId = "delivery:" + attachmentId;
-    
+
     if (await _stateStore.IsProcessedAsync(deliveryId, ct))
         return; // Already delivered
-    
+
     try
     {
         await _attachmentProcessor.ProcessAsync(...);
