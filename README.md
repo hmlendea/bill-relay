@@ -226,6 +226,8 @@ Bill Relay uses a hosted worker and focused services to poll IMAP, validate and 
 
 See the [architecture documentation](ARCHITECTURE.md) for the system context, principal components, runtime flows, ownership boundaries, dependencies, constraints, and extension points.
 
+See the [documentation index](docs/INDEX.md) for the complete documentation catalogue including component deep-dives, execution flows, configuration reference, testing guide, and troubleshooting.
+
 ## 🚢 Deployment
 
 Bill Relay is a self-hosted worker. Publish the solution, provide runtime configuration and secrets through the deployment environment, then run the `BillRelay` executable under the host's service manager.
