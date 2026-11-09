@@ -83,7 +83,7 @@ release.sh                    # Release script
 - **NuciDAL** — JSON repository for state persistence
 - **NUnit 4.x + Moq** — Unit testing
 - **ArchUnit.NET** — Architecture fitness tests
-- **GitHub Actions** — CI/CD
+- **GitHub Actions** — CI/CD (build, test, security scan)
 
 ## Operational Model
 

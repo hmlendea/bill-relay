@@ -167,6 +167,7 @@ cspell "docs/**/*.md"
 ### TODO: Add to CI
 - [ ] Add link check to `.github/workflows/dotnet.yml`
 - [ ] Add spell check to CI
+- [ ] Verify security scan workflow (`.github/workflows/security.yml`) runs on schedule
 
 ---
 

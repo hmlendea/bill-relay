@@ -315,6 +315,12 @@ The checkpoint is scoped by IMAP `UidValidity`. When that value changes, the UID
 
 IMAP access uses configured credentials. NuciNotifications configuration requires an absolute HTTPS URL and non-empty API key and HMAC shared secret. The service validates TLS certificates by default; configuration can disable certificate validation, which permits untrusted certificates and should not be used in normal deployments. Attachments and state are stored locally. Recipient and operational log fields are passed through NuciLog's sensitive-field mechanism where marked by `LogInfoKey`. Secrets must be supplied outside version-controlled configuration.
 
+**Automated Security Scanning:** The repository uses GitHub Actions for continuous security scanning via `.github/workflows/security.yml`:
+- **CodeQL Static Analysis** — Runs on push/PR to `master` and weekly (Sunday 00:00 UTC) to detect C# code vulnerabilities
+- **Vulnerable Package Detection** — `dotnet list package --vulnerable --include-transitive` runs on the same triggers to identify vulnerable NuGet dependencies (including transitive)
+
+Results are published to GitHub Code Scanning and viewable in the repository's **Security** tab.
+
 ### Error Handling
 
 Startup validation errors prevent the host from running. Cancellation requested by the host exits the polling loop. Other polling exceptions are logged at the inbox boundary, then the worker proceeds to a later poll. Attachment write failures are logged and rethrown. Notification delivery exceptions are logged and rethrown by `BillDelivery`, then logged by the worker and swallowed at the per-attachment boundary. The worker subsequently advances the message checkpoint, so failed sends are not automatically retried. Attachment validation failures are logged and skipped.

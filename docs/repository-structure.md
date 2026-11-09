@@ -69,7 +69,8 @@ BillRelay.slnx                          # SDK-style solution file
 ├── release.sh                          # Release script (delegates to external script)
 ├── .github/
 │   └── workflows/
-│       └── dotnet.yml                  # CI pipeline (build, test)
+│       ├── dotnet.yml                  # CI pipeline (build, test)
+│       └── security.yml                # Security scan (vulnerable packages, CodeQL)
 ├── ARCHITECTURE.md                     # Root architecture documentation
 ├── README.md                           # Project overview and usage
 ├── SECURITY.md                         # Security policy

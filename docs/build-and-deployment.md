@@ -74,6 +74,56 @@ jobs:
 **Runs:** Restore → Build → Test
 **Artifacts:** None published (add for releases)
 
+**Security Workflow:** `.github/workflows/security.yml`
+
+```yaml
+name: Security
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Check for vulnerable packages
+      run: dotnet list package --vulnerable --include-transitive
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v4
+      with:
+        languages: csharp
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+```
+
+**Triggers:** Push/PR to `master`, weekly schedule (`0 0 * * 0`)
+**Runs:** Restore dependencies → Check vulnerable packages → CodeQL analysis
+
 ## Deployment
 
 ### Deployment Model
