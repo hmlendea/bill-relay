@@ -1,5 +1,6 @@
 [![Donate](https://img.shields.io/badge/-%E2%99%A5%20Donate-%23ff69b4)](https://hmlendea.go.ro/funding)
 [![Build Status](https://github.com/hmlendea/bill-relay/actions/workflows/dotnet.yml/badge.svg)](https://github.com/hmlendea/bill-relay/actions/workflows/dotnet.yml)
+[![Security Scan](https://github.com/hmlendea/bill-relay/actions/workflows/security.yml/badge.svg)](https://github.com/hmlendea/bill-relay/actions/workflows/security.yml)
 [![License](https://img.shields.io/github/license/hmlendea/bill-relay)](https://github.com/hmlendea/bill-relay/blob/master/LICENSE)
 
 # Bill Relay

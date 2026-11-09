@@ -46,6 +46,15 @@ The subsequent categories are out of scope unless explicitly stated to the contr
 - Vulnerabilities in the IMAP server, NuciNotifications API, or SMTP infrastructure operated by third parties
 - Vulnerabilities in third-party dependencies, which should be reported to their upstream maintainers
 
+## 🔍 Automated Security Scanning
+
+This repository uses GitHub Actions for continuous security scanning:
+
+- **CodeQL Static Analysis** — Runs on every push/PR to `master` and weekly (Sunday 00:00 UTC) to detect code vulnerabilities in C# code
+- **Vulnerable Package Detection** — `dotnet list package --vulnerable --include-transitive` runs on every push/PR to `master` and weekly to identify vulnerable NuGet dependencies (including transitive dependencies)
+
+The security scan workflow is defined in `.github/workflows/security.yml`. Results are published to GitHub Code Scanning and can be viewed in the **Security** tab of this repository.
+
 ## 📢 Disclosure Policy
 
 This project follows coordinated disclosure:

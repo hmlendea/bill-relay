@@ -303,6 +303,37 @@ All state writes use temp-file + move pattern:
 6. **Single-threaded** — No parallel processing, but also no resource exhaustion from concurrency
 7. **No health/readiness endpoints** — Cannot integrate with orchestration health checks
 
+## CI/CD Security Scanning
+
+This project uses GitHub Actions for automated security scanning:
+
+### Security Scan Workflow (`.github/workflows/security.yml`)
+
+**Triggers:**
+- Push to `master` branch
+- Pull requests targeting `master` branch
+- Weekly schedule (Sunday 00:00 UTC)
+
+**Scans Performed:**
+
+| Scan | Tool | Purpose |
+|------|------|---------|
+| CodeQL Static Analysis | `github/codeql-action` | Detects code vulnerabilities in C# |
+| Vulnerable Package Detection | `dotnet list package --vulnerable --include-transitive` | Identifies vulnerable NuGet dependencies (including transitive) |
+
+**Permissions:** `security-events: write` (required for CodeQL SARIF upload), `contents: read`
+
+**Results:** Published to GitHub Code Scanning — viewable in the repository's **Security** tab.
+
+### Build & Test Workflow (`.github/workflows/dotnet.yml`)
+
+**Triggers:** Push/PR to `master`
+
+**Security-Relevant Steps:**
+- `dotnet restore` — Restores dependencies with lock file integrity
+- `dotnet build` — Compiles with warnings as errors
+- `dotnet test` — Runs unit, integration, and architecture tests
+
 ## Related Documentation
 
 - [Root SECURITY.md](../SECURITY.md) — Vulnerability reporting, supported versions
