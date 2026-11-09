@@ -206,6 +206,7 @@ BILLRELAY_EXAMPLE_DIRECTORY="/path/to/email-samples" dotnet test BillRelay.Integ
 | Workflow | Purpose | What it does |
 |----------|---------|--------------|
 | [dotnet.yml](https://github.com/hmlendea/bill-relay/blob/master/.github/workflows/dotnet.yml) | Validate the .NET solution | Restores dependencies, builds the solution, and runs tests. |
+| [security.yml](https://github.com/hmlendea/bill-relay/blob/master/.github/workflows/security.yml) | Security scanning | Checks for vulnerable packages and runs CodeQL static analysis. |
 
 ## 🗂️ Project Structure
 
