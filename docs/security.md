@@ -227,10 +227,10 @@ All state writes use temp-file + move pattern:
 
 | Package | Version | Purpose | Risk |
 |---------|---------|---------|------|
-| MailKit | 4.12.0 | IMAP/MIME | Mature, widely used |
-| MimeKit | 4.12.0 | MIME parsing | Mature, widely used |
-| NuciDAL | 3.2.1 | JSON repository | Internal (hmlendea) |
-| NuciLog | 1.2.1 | Logging | Internal (hmlendea) |
+| MailKit | 5.0.0 | IMAP/MIME | Mature, widely used |
+| MimeKit | 5.0.0 | MIME parsing | Mature, widely used |
+| NuciDAL | 4.3.0 | JSON repository | Internal (hmlendea) |
+| NuciLog | 1.2.3 | Logging | Internal (hmlendea) |
 | NuciNotifications.Client | 1.2.0 | API client | Internal (hmlendea) |
 
 **Supply Chain:** Internal packages from hmlendea; verify provenance in deployment.

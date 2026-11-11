@@ -196,10 +196,10 @@ BILLRELAY_EXAMPLE_DIRECTORY="/path/to/email-samples" dotnet test BillRelay.Integ
 
 | Package | Version | Scope | Purpose |
 |---------|---------|-------|---------|
-| MailKit | 4.12.0 | Runtime | IMAP access. |
-| MimeKit | 4.12.0 | Runtime | MIME message and attachment parsing. |
-| NuciDAL | 3.2.1 | Runtime | File-backed state persistence. |
-| NuciLog and NuciLog.Core | 1.2.1 / 3.1.0 | Runtime | Structured logging. |
+| MailKit | 5.0.0 | Runtime | IMAP access. |
+| MimeKit | 5.0.0 | Runtime | MIME message and attachment parsing. |
+| NuciDAL | 4.3.0 | Runtime | File-backed state persistence. |
+| NuciLog and NuciLog.Core | 1.2.3 / 3.1.1 | Runtime | Structured logging. |
 | NuciNotifications.Client | 1.2.0 | Runtime | Forwarded email delivery. |
 
 ## ⚙️ GitHub Actions
