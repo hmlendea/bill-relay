@@ -91,7 +91,7 @@ Delete the `sha256:{hash}` and `delivery:sha256:{hash}` entries from state file,
 ## E.ON Specific
 
 ### Why doesn't E.ON work like other providers?
-E.ON sends HTML email with a **download link**, not a PDF attachment. Bill Relay extracts the link, downloads the PDF, validates it, then processes normally.
+E.ON sends HTML email with a **download link**, not a PDF attachment. Bill Relay extracts the signed token from the link, calls the E.ON invoice API to download the PDF, validates it, then processes normally.
 
 ### E.ON download fails — what to check?
 1. Link regex in `EOnBillDownloader.cs` matches current email format

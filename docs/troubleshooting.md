@@ -127,14 +127,16 @@ chown billrelay:billrelay /var/lib/billrelay/bills
 
 ### 5. E.ON Bills Not Downloaded
 
-**Log:** `No bill download link found in E.ON email`
+**Log:** `E.ON download link not found in email body` or `E.ON download link does not contain a token`
 
-**Cause:** HTML body format changed, regex no longer matches
+**Cause:** HTML body format changed, regex no longer matches, or the link lost its `token` parameter
 
-**Fix:** Update regex in `EOnBillDownloader.cs`:
+**Fix:** Update the patterns in `EOnBillDownloader.cs`:
 ```csharp
 // Current pattern (may need adjustment)
-private static readonly Regex BillLinkRegex = new(@"href=[""'](https?://[^""']+\.pdf)[""']", RegexOptions.IgnoreCase);
+private static readonly Regex EOnDownloadLinkPattern = new(
+    @"https://www\.eon\.ro/descarc(?:are|a)-factura\?[^""'\s<>]+",
+    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 ```
 
 **Test:** Save `.eml`, run `ExampleEmailTests` with `BILLRELAY_EXAMPLE_DIRECTORY`

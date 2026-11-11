@@ -113,7 +113,7 @@ public enum Provider
 | **Electrica Furnizare** | "factura", "invoice", "bill" | electrifica.ro, electrificafurnizare.ro | — | `^DII.*P.*\.pdf$` |
 | **E-bloc** | "nota de plata", "payment note" | e-bloc.ro, ebloc.ro | — | `^Nota de plată\.pdf$` |
 | **Hidroelectrica** | "factura", "invoice", "bill" | hidroelectrica.ro | — | `^FX-.*\.pdf$` |
-| **E.ON** | "factura", "invoice", "bill" | eon.ro, eon-energia.ro | eon.ro/descarcare-factura | `^.*\.pdf$` (downloaded) |
+| **E.ON** | "factura", "invoice", "bill" | eon.ro, eon-energia.ro | eon.ro/descarca-factura | `^.*\.pdf$` (downloaded via `api2.eon.ro/invoices/v1/guest/pdf`) |
 
 ### Identification Logic (Simplified)
 
@@ -142,7 +142,7 @@ public static Provider IdentifyProvider(MimeMessage message)
     // E.ON (subject + sender OR body link)
     if (subject.Contains("factura") && (from.Contains("eon.ro") || from.Contains("eon-energia")))
         return Provider.EOn;
-    if (body.Contains("eon.ro/descarcare-factura"))
+    if (body.Contains("eon.ro/descarc"))
         return Provider.EOn;
 
     return Provider.Unknown;

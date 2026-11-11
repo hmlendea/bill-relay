@@ -184,7 +184,9 @@ finally
 | Failure | Result |
 |---------|--------|
 | No download link in body | Log debug, return null → message skipped |
+| Link without token | Log debug, return null → message skipped |
 | HTTP error (4xx, 5xx) | Log error, return null → message skipped |
+| Missing/empty base64 `file` | Log error, return null → message skipped |
 | Non-PDF content type | Log error, return null → message skipped |
 | Empty content | Log error, return null → message skipped |
 | Timeout | Log error, return null → message skipped |
