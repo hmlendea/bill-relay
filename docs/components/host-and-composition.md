@@ -85,15 +85,12 @@ private static void RegisterServices(IServiceCollection services)
     // Processing Pipeline
     services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
     services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
-    services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
     services.AddSingleton<IBillDelivery, BillDelivery>();
     services.AddSingleton<IBillSender, BillSender>();
 
-    // HTTP Client for E.ON downloads
-    services.AddHttpClient<IEOnBillDownloader, EOnBillDownloader>(client =>
-    {
-        client.Timeout = TimeSpan.FromSeconds(30);
-    });
+    // HTTP Client for E.ON downloads (IHttpClientFactory; timeout applied per call)
+    services.AddHttpClient();
+    services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
 
     // Worker
     services.AddHostedService<BillRelayWorker>();

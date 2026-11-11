@@ -40,10 +40,11 @@ namespace BillRelay
             builder.Services.AddNuciLoggerSettings(builder.Configuration);
             builder.Services.AddSingleton<ILogger, NuciLogger>();
             builder.Services.Configure<BillRelaySettings>(builder.Configuration);
+            builder.Services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
             builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
             builder.Services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
             builder.Services.AddSingleton<IStateStore, FileStateStore>();
-            builder.Services.AddHttpClient<IEOnBillDownloader, EOnBillDownloader>();
+            builder.Services.AddHttpClient();
             NuciNotificationsSettings notificationSettings = new();
             builder.Configuration
                 .GetSection(nameof(NuciNotificationsSettings))

@@ -254,10 +254,12 @@ Download bill PDFs from E.ON links in HTML emails.
 
 ```csharp
 // Program.cs
-services.AddHttpClient<IEOnBillDownloader, EOnBillDownloader>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+services.AddHttpClient();
+services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
+
+// EOnBillDownloader.DownloadBillAsync
+using HttpClient httpClient = httpClientFactory.CreateClient();
+httpClient.Timeout = TimeSpan.FromSeconds(settings.Value.Attachments.DownloadTimeoutSeconds);
 ```
 
 ### Flow

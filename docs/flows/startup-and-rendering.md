@@ -87,7 +87,7 @@ builder.Services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
 builder.Services.AddSingleton<IBillDelivery, BillDelivery>();
 builder.Services.AddSingleton<IBillSender, BillSender>();
 builder.Services.AddSingleton<IStateStore, FileStateStore>();
-builder.Services.AddHttpClient<IEOnBillDownloader, EOnBillDownloader>();
+builder.Services.AddHttpClient();
 builder.Services.AddSingleton<EmailAgePolicy>();
 builder.Services.AddLogging(logging => logging.AddNuciLog());
 ```

@@ -100,6 +100,7 @@ All services registered as **singletons** in `Program.cs`:
 services.AddSingleton<IStateStore, FileStateStore>();
 services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
 services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
+services.AddHttpClient();
 services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
 services.AddSingleton<IBillDelivery, BillDelivery>();
 services.AddSingleton<IBillSender, BillSender>();
