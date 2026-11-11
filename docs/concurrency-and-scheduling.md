@@ -52,6 +52,7 @@ Bill Relay is **single-threaded by design**. All processing occurs on the `Backg
 services.AddSingleton<IStateStore, FileStateStore>();
 services.AddSingleton<IAttachmentProcessor, AttachmentProcessor>();
 services.AddSingleton<IAttachmentValidator, AttachmentValidator>();
+services.AddHttpClient();
 services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
 services.AddSingleton<IBillDelivery, BillDelivery>();
 services.AddSingleton<IBillSender, BillSender>();
@@ -212,14 +213,16 @@ var results = await Task.WhenAll(downloadTasks);
 
 - **Lifecycle:** `IHttpClientFactory` → pooled handlers
 - **Configuration:** `Program.cs` adds `HttpClient` with timeout
-- **E.ON Downloader:** Uses named client `EOnBillDownloader`
+- **E.ON Downloader:** Creates a client per call from `IHttpClientFactory`
 
 ```csharp
 // Program.cs
-services.AddHttpClient<IEOnBillDownloader, EOnBillDownloader>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+services.AddHttpClient();
+services.AddSingleton<IEOnBillDownloader, EOnBillDownloader>();
+
+// EOnBillDownloader
+using HttpClient httpClient = httpClientFactory.CreateClient();
+httpClient.Timeout = TimeSpan.FromSeconds(settings.Value.Attachments.DownloadTimeoutSeconds);
 ```
 
 ### File Handles
