@@ -95,7 +95,7 @@ namespace BillRelay.Services.Attachments
             MimePart pdfPart = new("application", "pdf")
             {
                 FileName = $"E.ON_Factura_{messageId.Replace(':', '_')}.pdf",
-                Content = new MimeContent(new MemoryStream(pdfContent), ContentEncoding.Default),
+                Content = new MimeContent(new MemoryStream(pdfContent), ContentEncoding.Unspecified),
                 ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
                 ContentTransferEncoding = ContentEncoding.Base64
             };

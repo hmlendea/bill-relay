@@ -6,29 +6,29 @@
 
 | Package | Version | Purpose | License | Source |
 |---------|---------|---------|---------|--------|
-| `MailKit` | 4.12.0 | IMAP client, MIME parsing | MIT | NuGet.org |
-| `MimeKit` | 4.12.0 | MIME message/attachment handling | MIT | NuGet.org |
-| `NuciDAL` | 3.2.1 | JSON repository for state persistence | MIT | NuGet.org (hmlendea) |
-| `NuciLog.Core` | 3.1.0 | Structured logging abstractions | MIT | NuGet.org (hmlendea) |
-| `NuciLog` | 1.2.1 | Structured logging implementation | MIT | NuGet.org (hmlendea) |
+| `MailKit` | 5.0.0 | IMAP client, MIME parsing | MIT | NuGet.org |
+| `MimeKit` | 5.0.0 | MIME message/attachment handling | MIT | NuGet.org |
+| `NuciDAL` | 4.3.0 | JSON repository for state persistence | MIT | NuGet.org (hmlendea) |
+| `NuciLog.Core` | 3.1.1 | Structured logging abstractions | MIT | NuGet.org (hmlendea) |
+| `NuciLog` | 1.2.3 | Structured logging implementation | MIT | NuGet.org (hmlendea) |
 | `NuciNotifications.Client` | 1.2.0 | NuciNotifications API client | MIT | NuGet.org (hmlendea) |
-| `Microsoft.Extensions.Hosting` | 10.0.0 | Generic host, BackgroundService | MIT | NuGet.org |
-| `Microsoft.Extensions.Configuration` | 10.0.0 | Configuration binding | MIT | NuGet.org |
-| `Microsoft.Extensions.Configuration.Json` | 10.0.0 | JSON config provider | MIT | NuGet.org |
-| `Microsoft.Extensions.Configuration.EnvironmentVariables` | 10.0.0 | Env var config provider | MIT | NuGet.org |
-| `Microsoft.Extensions.Options` | 10.0.0 | Options pattern | MIT | NuGet.org |
-| `Microsoft.Extensions.Logging` | 10.0.0 | Logging abstractions | MIT | NuGet.org |
-| `Microsoft.Extensions.Http` | 10.0.0 | IHttpClientFactory | MIT | NuGet.org |
+| `Microsoft.Extensions.Hosting` | 11.0.0 | Generic host, BackgroundService | MIT | NuGet.org |
+| `Microsoft.Extensions.Configuration` | 11.0.0 | Configuration binding | MIT | NuGet.org |
+| `Microsoft.Extensions.Configuration.Json` | 11.0.0 | JSON config provider | MIT | NuGet.org |
+| `Microsoft.Extensions.Configuration.EnvironmentVariables` | 11.0.0 | Env var config provider | MIT | NuGet.org |
+| `Microsoft.Extensions.Options` | 11.0.0 | Options pattern | MIT | NuGet.org |
+| `Microsoft.Extensions.Logging` | 11.0.0 | Logging abstractions | MIT | NuGet.org |
+| `Microsoft.Extensions.Http` | 11.0.0 | IHttpClientFactory | MIT | NuGet.org |
 
 ### Development Dependencies
 
 | Package | Version | Purpose | Scope |
 |---------|---------|---------|-------|
-| `NUnit` | 4.2.2 | Test framework | Test projects |
-| `NUnit3TestAdapter` | 4.6.0 | VS Test integration | Test projects |
-| `Moq` | 4.20.72 | Mocking framework | Unit tests |
-| `ArchUnitNET` | 1.1.0 | Architecture tests | Architecture tests |
-| `Microsoft.NET.Test.Sdk` | 17.11.1 | Test runner | Test projects |
+| `NUnit` | 5.0.0 | Test framework | Test projects |
+| `NUnit3TestAdapter` | 6.3.1 | VS Test integration | Test projects |
+| `Moq` | 4.21.0 | Mocking framework | Unit tests |
+| `TngTech.ArchUnitNET.NUnit` | 0.13.5 | Architecture tests | Architecture tests |
+| `Microsoft.NET.Test.Sdk` | 18.12.0 | Test runner | Test projects |
 
 ## Internal Dependencies
 
@@ -93,7 +93,7 @@ BillRelay.ArchitectureTests
 dotnet list BillRelay/BillRelay.csproj package --outdated
 
 # Update specific package
-dotnet add BillRelay/BillRelay.csproj package MailKit --version 4.13.0
+dotnet add BillRelay/BillRelay.csproj package MailKit --version 5.0.0
 
 # Update all (interactive)
 dotnet outdated --upgrade
