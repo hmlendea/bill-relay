@@ -13,9 +13,12 @@
 ## Responsibilities
 
 1. **Link Extraction** — Find E.ON download URLs in HTML email body
-2. **HTTP Download** — Fetch PDF from extracted URL with timeout
-3. **Content Validation** — Verify response is `application/pdf` and non-empty
-4. **MIME Part Creation** — Wrap downloaded bytes as `MimePart` for downstream processing
+2. **Token Extraction** — Read the signed invoice token and API subscription key from the link and body
+3. **Invoice API Download** — `POST https://api2.eon.ro/invoices/v1/guest/pdf` with the token, timeout-bounded
+4. **Content Validation** — Verify the response is JSON containing a non-empty base64 `file`
+5. **MIME Part Creation** — Wrap decoded PDF bytes as `MimePart` for downstream processing
+
+> The public `www.eon.ro/descarca-factura` page is protected by a Cloudflare managed challenge that blocks non-browser clients. The downloader therefore never fetches that page; it calls the un-challenged `api2.eon.ro` invoice endpoint used by the page itself.
 
 ## Key Methods
 
@@ -30,29 +33,33 @@ public async Task<MimePart?> DownloadBillAsync(
 
 **Algorithm:**
 1. Extract HTML body from message
-2. Match `EOnDownloadLinkPattern` regex: `https://www\.eon\.ro/descarcare-factura\?[^""'\s<>]+`
-3. If no match → log debug, return null
-4. Create `HttpClient` via `IHttpClientFactory`
-5. Set timeout from `AttachmentSettings.DownloadTimeoutSeconds` (default 30s)
-6. GET download URL
-7. Validate response:
+2. Match `EOnDownloadLinkPattern` regex: `https://www\.eon\.ro/descarc(?:are|a)-factura\?[^""'\s<>]+`
+3. HTML-decode the match, then extract the `token` query parameter (`EOnTokenPattern`)
+4. If no match or token → log debug, return null
+5. Read the `Ocp-Apim-Subscription-Key` from the message body (`EOnSubscriptionKeyPattern`), falling back to the documented public key
+6. Create `HttpClient` via `IHttpClientFactory`
+7. Set timeout from `AttachmentSettings.DownloadTimeoutSeconds` (default 30s)
+8. `POST https://api2.eon.ro/invoices/v1/guest/pdf` with body `{"token":"..."}`, headers `Ocp-Apim-Subscription-Key` and `X-Client-Source: mylineWeb`
+9. Validate response:
    - Success status code
-   - Content-Type = `application/pdf`
-   - Non-empty content
-8. Create `MimePart` with:
+   - Content-Type = `application/json`
+   - `file` property contains non-empty base64 content
+10. Decode the base64 `file` into PDF bytes
+11. Create `MimePart` with:
    - MIME type: `application/pdf`
    - Filename: `E.ON_Factura_{messageId}.pdf` (colons replaced)
-   - Content: Downloaded bytes as `MemoryStream`
+   - Content: Decoded bytes as `MemoryStream`
    - Content-Disposition: Attachment
    - Content-Transfer-Encoding: Base64
-9. Return `MimePart` for downstream validation/processing
+12. Return `MimePart` for downstream validation/processing
 
 ## Regex Patterns
 
 | Pattern | Purpose |
 |---------|---------|
-| `EOnDownloadLinkPattern` | Primary download link: `https://www.eon.ro/descarcare-factura?...` |
-| `EOnClickTrackingPattern` | Click tracking links (currently unused): `http://noutati.myline-eon.ro/click/...` |
+| `EOnDownloadLinkPattern` | Invoice download link: `https://www.eon.ro/descarca-factura?...` (also tolerates the legacy `descarcare-factura` spelling) |
+| `EOnTokenPattern` | Signed invoice token query parameter: `[?&]token=...` |
+| `EOnSubscriptionKeyPattern` | API subscription key embedded in the body: `subscription-key=...` |
 
 ## Configuration
 
@@ -64,9 +71,10 @@ Controlled via `AttachmentSettings`:
 | Failure | Behavior |
 |---------|----------|
 | No download link found | Log debug, return null |
+| Link without token | Log debug, return null |
 | HTTP error status | Log error, return null |
-| Non-PDF content type | Log error, return null |
-| Empty PDF content | Log error, return null |
+| Non-JSON content type | Log error, return null |
+| Missing or empty `file` | Log error, return null |
 | Network/timeout exception | Log error, return null |
 | Cancellation | Rethrow `OperationCanceledException` |
 
@@ -83,9 +91,9 @@ BillRelayWorker.ProcessMessageAsync
     │       │
     │       └─► EOnBillDownloader.DownloadBillAsync(message, messageId)
     │               │
-    │               ├─► Extract link from HTML body
-    │               ├─► HTTP GET with timeout
-    │               ├─► Validate PDF response
+    │               ├─► Extract token from the invoice link in the HTML body
+    │               ├─► POST invoice API with token (timeout-bounded)
+    │               ├─► Decode base64 PDF from the JSON response
     │               └─► Return MimePart
     │
     ├─► AttachmentValidator.GetFailureReason (MIME type, size, PDF signature)
@@ -95,7 +103,9 @@ BillRelayWorker.ProcessMessageAsync
 
 ## Testing
 
-**Unit Tests:** None directly (integration tested via `ExampleEmailTests`)
+**Unit Tests:** `BillRelay.UnitTests.Services.Attachments.EOnBillDownloaderTests`
+- Stubbed `HttpMessageHandler`; no network access
+- Covers link/token extraction, HTML-encoded links, subscription-key propagation, API failures, and empty/missing `file` responses
 
 **Integration Tests:** `BillRelay.IntegrationTests.Services.ExampleEmailTests`
 - Requires `BILLRELAY_EXAMPLE_DIRECTORY` with `.eml` samples

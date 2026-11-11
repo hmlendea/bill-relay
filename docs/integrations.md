@@ -267,26 +267,28 @@ httpClient.Timeout = TimeSpan.FromSeconds(settings.Value.Attachments.DownloadTim
 ```
 EOnBillDownloader.DownloadBillAsync
     │
-    ├─ Extract URL from HTML body (regex)
-    ├─ HTTP GET with timeout (30s)
+    ├─ Extract invoice link + token from HTML body (regex)
+    ├─ Read subscription key from body (fallback: public default)
+    ├─ POST https://api2.eon.ro/invoices/v1/guest/pdf with timeout (30s)
     ├─ Validate response
     │   ├─ Status 200
-    │   ├─ Content-Type: application/pdf
-    │   ├─ PDF signature (%PDF-)
-    │   └─ Size ≤ MaximumSizeBytes
+    │   ├─ Content-Type: application/json
+    │   └─ Non-empty base64 `file`
     │
-    └─ Wrap as MimePart for AttachmentProcessor
+    └─ Decode PDF bytes and wrap as MimePart for AttachmentProcessor
 ```
+
+> The `www.eon.ro/descarca-factura` landing page is Cloudflare-challenge protected, so the downloader calls the API host directly instead of fetching the page.
 
 ### Error Handling
 
 | Error | Response |
 |-------|----------|
 | No URL found | Return null (not E.ON bill) |
+| Link without token | Return null (not E.ON bill) |
 | HTTP error (4xx/5xx) | Log, return null |
 | Timeout | Log, return null |
-| Not PDF | Log, return null |
-| Too large | Log, return null |
+| Missing/empty `file` | Log, return null |
 
 **Result:** Null → `BillProviderIdentification` treats as no attachment → message skipped.
 

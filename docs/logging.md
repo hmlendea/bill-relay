@@ -55,7 +55,7 @@ Every log entry includes standard properties via `LogInfo` key-value pairs:
 | `RecordCount` | int | State records affected | Low |
 | `ContentLength` | long | Decoded attachment bytes | Low |
 | `EncodedContentLength` | long | Base64 attachment bytes | Low |
-| `Url` | string | E.ON download URL | Low |
+| `Url` | string | Request/redirect URL (reserved) | Low |
 | `MaximumSizeBytes` | long | Configured size limit | Low |
 | `Reason` | string | Failure/rejection reason | Low |
 

@@ -153,7 +153,7 @@ if (!_imapSettings.IsCertificateValidationEnabled)
 | Sender address | Domain suffix match against known providers |
 | Body links | HTTPS URL regex, domain extraction |
 | Attachments | MIME type allowlist, size limit, PDF signature (`%PDF-`) |
-| E.ON download URL | Regex match `https://www.eon.ro/descarcare-factura?...` |
+| E.ON invoice link | Regex match `https://www.eon.ro/descarc(are)?-factura?...`; only the `token` query parameter is used |
 
 ### File Operations
 

@@ -24,7 +24,7 @@ Document known uncertainties, design tensions, and areas requiring future decisi
 
 **Question:** How to handle E.ON email template changes breaking link regex?
 
-**Current:** Single regex pattern in `EOnBillDownloader.cs`
+**Current:** `EOnDownloadLinkPattern` and `EOnTokenPattern` in `EOnBillDownloader.cs`; the token is exchanged for the PDF through the `api2.eon.ro` invoice API
 
 **Risks:**
 - E.ON changes email format → silent failure (no attachment found)
@@ -33,7 +33,7 @@ Document known uncertainties, design tensions, and areas requiring future decisi
 **Options:**
 - Multiple fallback regex patterns
 - HTML parsing (AngleSharp) instead of regex
-- Monitoring/alert on "No bill download link found" log
+- Monitoring/alert on "E.ON download link not found" log
 - Periodic test with saved `.eml` samples
 
 **Decision Deferred:** Monitor failure rate first.

@@ -94,15 +94,17 @@ This document records significant architectural and design decisions, their rati
 
 ## 6. E.ON Link-Based Download (Not Attachment)
 
-**Context:** E.ON sends HTML email with link to PDF, not PDF attachment.
+**Context:** E.ON sends HTML email with link to PDF, not PDF attachment. The public invoice page at `www.eon.ro/descarca-factura` is fronted by a Cloudflare managed challenge that returns HTTP 403 to non-browser clients, including headless browsers.
 
-**Decision:** Implement `IEOnBillDownloader` to extract link from HTML body, download PDF, validate, wrap as `MimePart`.
+**Decision:** Implement `IEOnBillDownloader` to extract the signed invoice token from the link in the HTML body and call the un-challenged invoice API (`POST https://api2.eon.ro/invoices/v1/guest/pdf`) directly, then decode the base64 PDF, validate, and wrap as `MimePart`.
 
 **Consequences:**
 - ✅ Handles E.ON's unique delivery method
+- ✅ Avoids the Cloudflare challenge entirely (API host is not challenged)
 - ✅ Reuses existing attachment pipeline
 - ❌ Additional HTTP dependency (network, timeouts, TLS)
-- ❌ Link extraction regex fragile to email template changes
+- ❌ Token extraction regex fragile to email template changes
+- ❌ Depends on an undocumented E.ON API contract and public subscription key
 - ❌ No attachment to validate upfront (download first, validate after)
 
 ---
